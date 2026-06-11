@@ -25,12 +25,23 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    model  = joblib.load(os.path.join(BASE_DIR, "model_rf_kebocoran.pkl"))
-    scaler = joblib.load(os.path.join(BASE_DIR, "scaler_kebocoran.pkl"))
-    le     = joblib.load(os.path.join(BASE_DIR, "label_encoder.pkl"))
+    model_path = os.path.join(BASE_DIR, "model_rf_kebocoran.pkl")
+    scaler_path = os.path.join(BASE_DIR, "scaler_kebocoran.pkl")
+    le_path = os.path.join(BASE_DIR, "label_encoder.pkl")
+    
+    print(f"📂 BASE_DIR: {BASE_DIR}")
+    print(f"🔍 Looking for model at: {model_path}")
+    print(f"   Files exist: {os.path.exists(model_path)}")
+    
+    model  = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+    le     = joblib.load(le_path)
     print("✅ Model loaded successfully")
 except Exception as e:
+    import traceback
     print(f"❌ Error loading model: {e}")
+    print(f"   Full traceback:")
+    traceback.print_exc()
     model = scaler = le = None
 
 class SensorInput(BaseModel):
