@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import joblib
 import numpy as np
 import os
@@ -34,14 +34,23 @@ except Exception as e:
     model = scaler = le = None
 
 class SensorInput(BaseModel):
-    ch1_mA: float;  ch2_mA: float;  ch3_mA: float
-    ch4_mA: float;  ch5_mA: float;  ch6_mA: float
-    ch7_mA: float;  ch8_mA: float;  ch9_mA: float
-    ch10_mA: float; ch11_mA: float; ch12_mA: float
-    base1_mA: float;  base2_mA: float;  base3_mA: float
-    base4_mA: float;  base5_mA: float;  base6_mA: float
-    base7_mA: float;  base8_mA: float;  base9_mA: float
-    base10_mA: float; base11_mA: float; base12_mA: float
+    ch1_mA: float | int;  ch2_mA: float | int;  ch3_mA: float | int
+    ch4_mA: float | int;  ch5_mA: float | int;  ch6_mA: float | int
+    ch7_mA: float | int;  ch8_mA: float | int;  ch9_mA: float | int
+    ch10_mA: float | int; ch11_mA: float | int; ch12_mA: float | int
+    base1_mA: float | int;  base2_mA: float | int;  base3_mA: float | int
+    base4_mA: float | int;  base5_mA: float | int;  base6_mA: float | int
+    base7_mA: float | int;  base8_mA: float | int;  base9_mA: float | int
+    base10_mA: float | int; base11_mA: float | int; base12_mA: float | int
+
+    @field_validator('*', mode='before')
+    def convert_to_float(cls, v):
+        if v is None:
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
 
 @app.get("/")
 def root():
