@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
+export async function GET() {
+  return Response.json({
+    status: "API Sensor Active"
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
