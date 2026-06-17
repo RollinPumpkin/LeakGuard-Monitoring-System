@@ -2,7 +2,7 @@
 import React from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ReferenceLine
+  Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { SensorReading, TrafoConfig, ThresholdConfig } from '@/types'
 import { format, parseISO } from 'date-fns'
@@ -38,17 +38,32 @@ export function TrendChart({ readings, configs, threshold }: Props) {
         <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="ts" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 10 }} tickFormatter={v => Number(v).toFixed(4)} width={72} />
+          <YAxis
+            tick={{ fontSize: 10 }}
+            tickFormatter={v => Number(v).toFixed(4)}
+            width={72}
+          />
           <Tooltip
             contentStyle={{ fontSize: 11, borderRadius: 8 }}
-            formatter={(v: number) => [`${v.toFixed(4)} A`]} />
+            formatter={(v: number) => [`${v.toFixed(4)} A`]}
+          />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-          <ReferenceLine y={threshold.warning} stroke="#f59e0b" strokeDasharray="4 4"
-            label={{ value: 'Threshold', fontSize: 10, fill: '#f59e0b', position: 'right' }} />
+          <ReferenceLine
+            y={threshold.warning}
+            stroke="#f59e0b"
+            strokeDasharray="4 4"
+            label={{ value: 'Threshold', fontSize: 10, fill: '#f59e0b', position: 'right' }}
+          />
           {configs.map((cfg, i) => (
-            <Line key={cfg.name} type="monotone" dataKey={cfg.name}
+            <Line
+              key={cfg.name}
+              type="monotone"
+              dataKey={cfg.name}
               stroke={LINE_COLORS[i % LINE_COLORS.length]}
-              strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
           ))}
         </LineChart>
       </ResponsiveContainer>
