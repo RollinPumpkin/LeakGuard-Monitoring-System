@@ -1,194 +1,126 @@
 'use client'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { DeviceWithLatest } from '@/types'
-import { MetricCard } from '@/components/MetricCard'
-import { DeviceTable } from '@/components/DeviceTable'
-import { DeviceModal } from '@/components/DeviceModal'
-import { Zap, CheckCircle, AlertTriangle, XCircle, Search, RefreshCw } from 'lucide-react'
+import {
+  Device, SensorReading, DeviceWithLatest,
+  TrafoConfig, ThresholdConfig, TrafoStatus, PhaseReading
+} from '@/types'
+import { SystemStatusBar } from '@/components/SystemStatusBar'
+import { ThresholdPanel } from '@/components/ThresholdPanel'
+import { TrafoCard } from '@/components/TrafoCard'
+import { TrendChart } from '@/components/TrendChart'
+import { SummaryTable } from '@/components/SummaryTable'
+import { Zap, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 
-export default function DashboardPage() {
-  const [devices, setDevices]         = useState<DeviceWithLatest[]>([])
-  const [filtered, setFiltered]       = useState<DeviceWithLatest[]>([])
-  const [selected, setSelected]       = useState<DeviceWithLatest | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [search, setSearch]           = useState('')
-  const [statusFilter, setStatusFilter] = useState('All Status')
-  const [lastUpdate, setLastUpdate]   = useState<Date>(new Date())
+// ─── Constants ────────────────────────────────────────────────────────────────
+const LS_NAMES     = 'leakguard_trafo_names'
+const LS_THRESHOLD = 'leakguard_threshold'
+const MAX_READINGS = 50
 
-  const loadDevices = useCallback(async () => {
-    setLoading(true)
-    try {
-      // Ambil semua devices
-      const { data: devData } = await supabase
-        .from('devices')
-        .select('*')
-        .eq('is_active', true)
-        .order('device_id')
+const CHANNEL_MAP: Omit<TrafoConfig, 'name'>[] = [
+  { rChannel: 'ch1_mA', sChannel: 'ch4_mA', tChannel: 'ch7_mA',
+    rBase: 'base1_mA', sBase: 'base4_mA', tBase: 'base7_mA' },
+  { rChannel: 'ch2_mA', sChannel: 'ch5_mA', tChannel: 'ch8_mA',
+    rBase: 'base2_mA', sBase: 'base5_mA', tBase: 'base8_mA' },
+  { rChannel: 'ch3_mA', sChannel: 'ch6_mA', tChannel: 'ch9_mA',
+    rBase: 'base3_mA', sBase: 'base6_mA', tBase: 'base9_mA' },
+]
 
-      if (!devData) return
-
-      // Untuk setiap device, ambil reading dan prediksi terbaru
-      const enriched = await Promise.all(devData.map(async (dev) => {
-        const [{ data: readings }, { data: preds }] = await Promise.all([
-          supabase.from('sensor_readings')
-            .select('*').eq('device_id', dev.device_id)
-            .order('timestamp', { ascending: false }).limit(1),
-          supabase.from('predictions')
-            .select('*').eq('device_id', dev.device_id)
-            .order('timestamp', { ascending: false }).limit(1),
-        ])
-        return {
-          ...dev,
-          latest_reading    : readings?.[0] || null,
-          latest_prediction : preds?.[0]    || null,
-        } as DeviceWithLatest
-      }))
-
-      setDevices(enriched)
-      setFiltered(enriched)
-      setLastUpdate(new Date())
-    } finally {
-      setLoading(false)
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function loadNames(): string[] {
+  try {
+    const saved = localStorage.getItem(LS_NAMES)
+    if (saved) {
+      const arr = JSON.parse(saved) as string[]
+      if (arr.length === 3) return arr
     }
+  } catch { /* ignore */ }
+  return ['Trafo 1', 'Trafo 2', 'Trafo 3']
+}
+
+function loadThreshold(): number {
+  try {
+    const v = parseFloat(localStorage.getItem(LS_THRESHOLD) ?? '')
+    if (v > 0) return v
+  } catch { /* ignore */ }
+  return 0.1
+}
+
+function buildTrafoStatuses(
+  reading: SensorReading | null,
+  configs: TrafoConfig[],
+  threshold: number
+): TrafoStatus[] {
+  return configs.map(cfg => {
+    const rv = reading ? Number(reading[cfg.rChannel] ?? 0) : 0
+    const sv = reading ? Number(reading[cfg.sChannel] ?? 0) : 0
+    const tv = reading ? Number(reading[cfg.tChannel] ?? 0) : 0
+    const rb = reading ? Number(reading[cfg.rBase] ?? 0) : 0
+    const sb = reading ? Number(reading[cfg.sBase] ?? 0) : 0
+    const tb = reading ? Number(reading[cfg.tBase] ?? 0) : 0
+
+    const phases: PhaseReading[] = [
+      { phase: 'R', value: rv, baseline: rb, status: rv >= threshold ? 'Warning' : 'Normal' },
+      { phase: 'S', value: sv, baseline: sb, status: sv >= threshold ? 'Warning' : 'Normal' },
+      { phase: 'T', value: tv, baseline: tb, status: tv >= threshold ? 'Warning' : 'Normal' },
+    ]
+    return {
+      config: cfg,
+      phases,
+      avgCurrent: (rv + sv + tv) / 3,
+      overallStatus: phases.some(p => p.status === 'Warning') ? 'Warning' : 'Normal',
+    }
+  })
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function DashboardPage() {
+  const [devices, setDevices]       = useState<Device[]>([])
+  const [activeDevId, setActiveDevId] = useState<string>('')
+  const [readings, setReadings]     = useState<SensorReading[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [isLive, setIsLive]         = useState(false)
+  const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [names, setNames]           = useState<string[]>(['Trafo 1', 'Trafo 2', 'Trafo 3'])
+  const [threshold, setThreshold]   = useState<ThresholdConfig>({ warning: 0.1 })
+
+  // Load localStorage on mount
+  useEffect(() => {
+    setNames(loadNames())
+    setThreshold({ warning: loadThreshold() })
   }, [])
 
-  useEffect(() => { loadDevices() }, [loadDevices])
-
-  // Filter logic
-  useEffect(() => {
-    let result = devices
-    if (search) {
-      result = result.filter(d =>
-        d.device_id.toLowerCase().includes(search.toLowerCase()) ||
-        d.device_type.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-    if (statusFilter !== 'All Status') {
-      result = result.filter(d =>
-        d.latest_reading?.alarm_status === statusFilter
-      )
-    }
-    setFiltered(result)
-  }, [devices, search, statusFilter])
-
-  // Realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('sensor-readings-changes')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'sensor_readings' },
-        () => loadDevices()
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [loadDevices])
-
-  // Hitung metrics
-  const metrics = {
-    total   : devices.length,
-    normal  : devices.filter(d => d.latest_reading?.alarm_status === 'Normal').length,
-    warning : devices.filter(d => d.latest_reading?.alarm_status === 'Warning').length,
-    critical: devices.filter(d => d.latest_reading?.alarm_status === 'Critical').length,
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Zap size={20} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">
-                Transformer Leak Current Monitoring
-              </h1>
-              <p className="text-xs text-gray-500">
-                Real-time monitoring dashboard
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">
-              {format(lastUpdate, 'EEEE, d MMMM yyyy', { locale: idLocale })}
-            </span>
-            <button onClick={loadDevices}
-              className="p-2 text-gray-500 hover:text-blue-600
-              hover:bg-blue-50 rounded-lg transition-colors"
-              title="Refresh">
-              <RefreshCw size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Metric Cards */}
-        <div className="grid grid-cols-4 gap-4">
-          <MetricCard title="Total Devices" value={metrics.total}
-            icon={<Zap size={18} />} color="blue" />
-          <MetricCard title="Normal" value={metrics.normal}
-            icon={<CheckCircle size={18} />} color="green" />
-          <MetricCard title="Warning" value={metrics.warning}
-            icon={<AlertTriangle size={18} />} color="yellow" />
-          <MetricCard title="Critical" value={metrics.critical}
-            icon={<XCircle size={18} />} color="red" />
-        </div>
-
-        {/* Filter bar */}
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2
-              -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search device ID or dimension..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200
-                rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
-                bg-white"
-            />
-          </div>
-          {['All Devices', 'LCM'].map(opt => (
-            <select key={opt}
-              className="px-4 py-2.5 text-sm border border-gray-200 rounded-lg
-                bg-white focus:outline-none focus:ring-2 focus:ring-blue-500
-                text-gray-700">
-              <option>{opt}</option>
-            </select>
-          ))}
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 text-sm border border-gray-200 rounded-lg
-              bg-white focus:outline-none focus:ring-2 focus:ring-blue-500
-              text-gray-700">
-            {['All Status', 'Normal', 'Warning', 'Critical'].map(s => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Table */}
-        <DeviceTable
-          devices={filtered}
-          onRowClick={setSelected}
-          isLoading={loading}
-        />
-      </main>
-
-      {/* Modal */}
-      {selected && (
-        <DeviceModal
-          device={selected}
-          onClose={() => setSelected(null)}
-        />
-      )}
-    </div>
+  // Build TrafoConfig array from names + channel map
+  const trafoConfigs = useMemo<TrafoConfig[]>(() =>
+    CHANNEL_MAP.map((ch, i) => ({ ...ch, name: names[i] })),
+    [names]
   )
-}
+
+  // Load devices
+  useEffect(() => {
+    supabase.from('devices').select('*').eq('is_active', true)
+      .order('device_id')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setDevices(data)
+          setActiveDevId(data[0].device_id)
+        }
+      })
+  }, [])
+
+  // Load last 50 readings for active device
+  const loadReadings = useCallback(async (devId: string) => {
+    if (!devId) return
+    setLoading(true)
+    const { data } = await supabase
+      .from('sensor_readings')
+      .select('*')
+      .eq('device_id', devId)
+      .order('timestamp', { ascending: false })
+      .limit(MAX_READINGS)
+    if (data) {
+      setReadings(data.reverse())
+      setLastUpdate(new Date())
+    }

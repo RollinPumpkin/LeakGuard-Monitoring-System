@@ -24,6 +24,7 @@ export interface SensorReading {
   base10_mA: number; base11_mA: number; base12_mA: number
   trend: string
   alarm_status: AlarmStatus
+  fault_code?: string
 }
 
 export interface Prediction {
@@ -40,4 +41,32 @@ export interface Prediction {
 export interface DeviceWithLatest extends Device {
   latest_reading: SensorReading | null
   latest_prediction: Prediction | null
+}
+
+export interface TrafoConfig {
+  name: string
+  rChannel: keyof SensorReading
+  sChannel: keyof SensorReading
+  tChannel: keyof SensorReading
+  rBase: keyof SensorReading
+  sBase: keyof SensorReading
+  tBase: keyof SensorReading
+}
+
+export interface ThresholdConfig {
+  warning: number
+}
+
+export interface PhaseReading {
+  phase: 'R' | 'S' | 'T'
+  value: number
+  baseline: number
+  status: 'Normal' | 'Warning'
+}
+
+export interface TrafoStatus {
+  config: TrafoConfig
+  phases: PhaseReading[]
+  avgCurrent: number
+  overallStatus: 'Normal' | 'Warning'
 }
