@@ -10,6 +10,7 @@ import { id as idLocale } from 'date-fns/locale'
 
 interface Props {
   device: DeviceWithLatest
+  onClick?: (device: DeviceWithLatest) => void
 }
 
 function statusPill(ok: boolean, okText: string, badText: string) {
@@ -25,7 +26,7 @@ function statusPill(ok: boolean, okText: string, badText: string) {
   )
 }
 
-export function HealthCard({ device }: Props) {
+export function HealthCard({ device, onClick }: Props) {
   const r = device.latest_reading
 
   const batt = Number(r?.battery_percent ?? 0)
@@ -37,7 +38,10 @@ export function HealthCard({ device }: Props) {
   const sysOk = (r?.system_status ?? 0) === 1
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div 
+      className={`bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden ${onClick ? 'cursor-pointer hover:border-blue-300 hover:shadow-md transition-all' : ''}`}
+      onClick={() => onClick?.(device)}
+    >
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 bg-gray-900 rounded-lg">

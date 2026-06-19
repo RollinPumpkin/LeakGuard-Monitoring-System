@@ -39,6 +39,10 @@ export default function DashboardPage() {
       setLastUpdate(new Date())
       setLoading(false)
     })()
+    
+    // Auto-cleanup data lama di background
+    fetch('/api/cleanup').catch(console.error)
+    
     return () => { active = false }
   }, [])
 

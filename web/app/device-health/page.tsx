@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DeviceWithLatest } from '@/types'
 import { HealthCard } from '@/components/HealthCard'
+import { HealthDetailModal } from '@/components/HealthDetailModal'
 import { loadDevicesWithLatest } from '@/lib/data'
 import { RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
@@ -10,6 +11,7 @@ import { id as idLocale } from 'date-fns/locale'
 
 export default function DeviceHealthPage() {
   const [devices, setDevices] = useState<DeviceWithLatest[]>([])
+  const [selected, setSelected] = useState<DeviceWithLatest | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
@@ -33,6 +35,10 @@ export default function DeviceHealthPage() {
       setLastUpdate(new Date())
       setLoading(false)
     })()
+    
+    // Auto-cleanup data lama di background
+    fetch('/api/cleanup').catch(console.error)
+    
     return () => { active = false }
   }, [])
 
@@ -85,13 +91,17 @@ export default function DeviceHealthPage() {
             <p className="text-sm text-gray-500">Belum ada alat terdaftar.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {devices.map((device) => (
-              <HealthCard key={device.id} device={device} />
-            ))}
-          </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {devices.map((device) => (
+                <HealthCard key={device.id} device={device} onClick={setSelected} />
+              ))}
+            </div>
+          )}
+        </main>
+        
+        {selected && (
+          <HealthDetailModal device={selected} onClose={() => setSelected(null)} />
         )}
-      </main>
-    </div>
-  )
-}
+      </div>
+    )
+  }

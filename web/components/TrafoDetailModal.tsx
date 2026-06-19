@@ -17,7 +17,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { X, TrendingUp, Zap } from 'lucide-react'
+import { X, TrendingUp, Zap, Table as TableIcon, Download } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 
@@ -29,6 +29,7 @@ interface Props {
 export function TrafoDetailModal({ device, onClose }: Props) {
   const [readings, setReadings] = useState<SensorReading[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
 
   useEffect(() => {
     if (!device) return
@@ -54,10 +55,25 @@ export function TrafoDetailModal({ device, onClose }: Props) {
 
   const chartData = readings.map((rd) => ({
     time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: idLocale }),
+    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: idLocale }),
     R: Number(toMilliAmp(rd.ir_ema_avg).toFixed(2)),
     S: Number(toMilliAmp(rd.is_ema_avg).toFixed(2)),
     T: Number(toMilliAmp(rd.it_ema_avg).toFixed(2)),
   }))
+
+  const handleExportCSV = () => {
+    const headers = ['Tanggal', 'Waktu', 'Fasa R (mA)', 'Fasa S (mA)', 'Fasa T (mA)']
+    const rows = chartData.map(d => [d.date, d.time, d.R, d.S, d.T])
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `arus-bocor-${device.device_id}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -142,34 +158,97 @@ export function TrafoDetailModal({ device, onClose }: Props) {
             </div>
           )}
 
-          {/* Chart tren EMA */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <TrendingUp size={15} />
-              Tren Arus Bocor EMA (mA)
-            </h3>
-            {loading ? (
-              <div className="h-48 flex items-center justify-center">
-                <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                    formatter={(value) => [`${Number(value ?? 0)} mA`]}
-                  />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="R" stroke="#ef4444" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="S" stroke="#eab308" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="T" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+          {/* Tabs untuk Grafik dan Tabel */}
+          <div className="border-b border-gray-200 mb-4">
+            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('chart')}
+                className={`whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'chart'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <TrendingUp size={16} /> Grafik Tren
+              </button>
+              <button
+                onClick={() => setActiveTab('table')}
+                className={`whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'table'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <TableIcon size={16} /> History Log
+              </button>
+            </nav>
           </div>
+
+          {activeTab === 'chart' && (
+            <div>
+              {loading ? (
+                <div className="h-48 flex items-center justify-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                      formatter={(value) => [`${Number(value ?? 0)} mA`]}
+                    />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                    <Line type="monotone" dataKey="R" stroke="#ef4444" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="S" stroke="#eab308" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="T" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'table' && (
+            <div>
+              <div className="flex justify-end mb-3">
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  <Download size={14} /> Export CSV
+                </button>
+              </div>
+              <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Waktu</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">R (mA)</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">S (mA)</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">T (mA)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {chartData.map((d, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{d.date} {d.time}</td>
+                        <td className="px-4 py-2 text-right font-medium text-red-600">{d.R}</td>
+                        <td className="px-4 py-2 text-right font-medium text-yellow-600">{d.S}</td>
+                        <td className="px-4 py-2 text-right font-medium text-blue-600">{d.T}</td>
+                      </tr>
+                    ))}
+                    {chartData.length === 0 && !loading && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-xs">Belum ada data history</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
