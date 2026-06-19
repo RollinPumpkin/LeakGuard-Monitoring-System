@@ -86,7 +86,7 @@ export function TrafoDetailModal({ device, onClose }: Props) {
       ? ['Tanggal', 'Waktu', 'Fasa R (mA)', 'Fasa S (mA)', 'Fasa T (mA)']
       : ['Tanggal', 'Waktu', `${selectedView}1 (mA)`, `${selectedView}2 (mA)`, `${selectedView}3 (mA)`]
     
-    const rows = chartData.map(d => isAvg 
+    const rows = chartData.map((d: any) => isAvg 
       ? [d.date, d.time, d.R, d.S, d.T]
       : [d.date, d.time, d[`${selectedView}1`], d[`${selectedView}2`], d[`${selectedView}3`]]
     )

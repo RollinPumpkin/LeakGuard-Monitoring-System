@@ -2,8 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Zap, Activity, HardDrive } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Zap, Activity, HardDrive, LogOut } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 const nav = [
   {
@@ -17,6 +18,16 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  if (pathname === '/login') return null
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside className="w-60 shrink-0 border-r border-gray-200 bg-white flex flex-col">
@@ -60,8 +71,17 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-gray-100 text-[11px] text-gray-400">
-        Septa Puma Surya · Polinema 2026
+      <div className="px-3 py-4 border-t border-gray-100 flex flex-col gap-2">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-red-600 hover:bg-red-50"
+        >
+          <LogOut size={17} />
+          Keluar
+        </button>
+        <div className="text-[11px] text-gray-400 mt-2">
+          Septa Puma Surya · Polinema 2026
+        </div>
       </div>
     </aside>
   )
