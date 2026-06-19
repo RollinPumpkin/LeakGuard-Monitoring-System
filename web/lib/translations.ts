@@ -1,0 +1,192 @@
+export type Language = 'id' | 'en'
+
+export const dictionary = {
+  en: {
+    // General
+    leakguard: "LeakGuard",
+    transformer_monitoring: "Transformer Monitoring",
+    loading: "Loading...",
+    no_data: "No data available",
+    close: "Close",
+    save: "Save",
+    cancel: "Cancel",
+    add: "Add",
+    delete: "Delete",
+    edit: "Edit",
+    export_csv: "Export CSV",
+    logout: "Log Out",
+    
+    // Sidebar
+    monitoring: "MONITORING",
+    leak_current: "Leak Current",
+    device_status: "Device Status",
+    
+    // Login
+    welcome_back: "Welcome back",
+    login_to_dashboard: "Sign in to Dashboard",
+    email_label: "Email Address",
+    email_placeholder: "Enter your email",
+    password_label: "Password",
+    password_placeholder: "Enter your password",
+    remember_me: "Remember me",
+    forgot_password: "Forgot password?",
+    login_button: "Sign In",
+    logging_in: "Signing in...",
+    login_failed: "Login failed",
+
+    // Dashboard
+    leak_monitoring: "Leak Current Monitoring",
+    leak_desc: "20kV outgoing cable leak current phase R / S / T (EMA)",
+    add_trafo: "Add Trafo",
+    total_trafo: "Total Trafo",
+    normal: "Normal",
+    warning: "Warning",
+    critical: "Critical",
+    
+    // Chart
+    average_rst_chart: "Average RST Chart",
+    average_rst_desc: "Monitor average leak current in real-time",
+    week: "Week",
+    month: "Month",
+    current_ma: "Current (mA)",
+    time: "Time",
+    average_r: "Average R",
+    average_s: "Average S",
+    average_t: "Average T",
+    
+    // Trafo Card & Modal
+    phase: "Phase",
+    average_ema: "AVERAGE EMA",
+    prediction: "Prediction",
+    model_maintenance: "Model under maintenance",
+    detail: "Detail",
+    detail_trafo: "Trafo Detail",
+    detail_desc: "EMA leak current analysis phase R/S/T",
+    device_type: "Device Type",
+    device_id: "Device ID",
+    location: "Location",
+    status: "Status",
+    rf_prediction: "Random Forest Prediction",
+    ema_summary: "EMA Summary (Average per Phase)",
+    trend_chart: "Trend Chart",
+    history_log: "History Log",
+    leak_trend_ema: "EMA Leak Current Trend",
+    date: "Date",
+    
+    // Settings & Add Trafo
+    settings: "Settings",
+    threshold_settings: "Threshold Settings",
+    critical_threshold: "Critical Threshold (mA)",
+    warning_threshold: "Warning Threshold (mA)",
+    saved_successfully: "Saved successfully",
+    add_new_trafo: "Add New Trafo",
+    trafo_id_placeholder: "e.g., TRAFO-01",
+    location_placeholder: "e.g., Main Substation",
+    
+    // Device Health
+    alat_monitoring: "Device Monitoring",
+    alat_desc: "IoT device hardware health status monitoring",
+    temperature: "Temperature",
+    humidity: "Humidity",
+    signal: "Signal",
+    uptime: "Uptime",
+    last_online: "Last Online",
+    health_history: "Health History",
+    health_trend: "Health Trend",
+  },
+  id: {
+    // General
+    leakguard: "LeakGuard",
+    transformer_monitoring: "Transformer Monitoring",
+    loading: "Memuat...",
+    no_data: "Belum ada data",
+    close: "Tutup",
+    save: "Simpan",
+    cancel: "Batal",
+    add: "Tambah",
+    delete: "Hapus",
+    edit: "Ubah",
+    export_csv: "Export CSV",
+    logout: "Keluar",
+    
+    // Sidebar
+    monitoring: "MONITORING",
+    leak_current: "Arus Bocor",
+    device_status: "Status Alat",
+    
+    // Login
+    welcome_back: "Selamat datang kembali",
+    login_to_dashboard: "Masuk ke Dashboard",
+    email_label: "Alamat Email",
+    email_placeholder: "Masukkan email Anda",
+    password_label: "Kata Sandi",
+    password_placeholder: "Masukkan kata sandi",
+    remember_me: "Ingat saya",
+    forgot_password: "Lupa kata sandi?",
+    login_button: "Masuk",
+    logging_in: "Memproses...",
+    login_failed: "Gagal masuk",
+
+    // Dashboard
+    leak_monitoring: "Monitoring Arus Bocor",
+    leak_desc: "Arus bocor kabel outgoing 20kV fasa R / S / T (EMA)",
+    add_trafo: "Tambah Trafo",
+    total_trafo: "Total Trafo",
+    normal: "Normal",
+    warning: "Warning",
+    critical: "Critical",
+    
+    // Chart
+    average_rst_chart: "Grafik Average RST",
+    average_rst_desc: "Pantau pergerakan rata-rata arus bocor secara langsung",
+    week: "Week",
+    month: "Month",
+    current_ma: "Arus (mA)",
+    time: "Waktu",
+    average_r: "Rata-rata R",
+    average_s: "Rata-rata S",
+    average_t: "Rata-rata T",
+    
+    // Trafo Card & Modal
+    phase: "Fasa",
+    average_ema: "AVERAGE EMA",
+    prediction: "Prediksi",
+    model_maintenance: "Model dalam perbaikan",
+    detail: "Detail",
+    detail_trafo: "Detail Trafo",
+    detail_desc: "Analisis arus bocor EMA fasa R/S/T",
+    device_type: "Tipe Perangkat",
+    device_id: "ID Perangkat",
+    location: "Lokasi",
+    status: "Status",
+    rf_prediction: "Prediksi Random Forest",
+    ema_summary: "Ringkasan EMA (Average per Fasa)",
+    trend_chart: "Grafik Tren",
+    history_log: "History Log",
+    leak_trend_ema: "Tren Arus Bocor EMA",
+    date: "Tanggal",
+    
+    // Settings & Add Trafo
+    settings: "Pengaturan",
+    threshold_settings: "Pengaturan Batas (Threshold)",
+    critical_threshold: "Batas Kritis (mA)",
+    warning_threshold: "Batas Peringatan (mA)",
+    saved_successfully: "Berhasil disimpan",
+    add_new_trafo: "Tambah Trafo Baru",
+    trafo_id_placeholder: "Contoh: TRAFO-01",
+    location_placeholder: "Contoh: Gardu Induk",
+    
+    // Device Health
+    alat_monitoring: "Monitoring Status Alat",
+    alat_desc: "Pantau kondisi kesehatan hardware perangkat IoT",
+    temperature: "Suhu",
+    humidity: "Kelembaban",
+    signal: "Sinyal",
+    uptime: "Uptime",
+    last_online: "Terakhir Online",
+    health_history: "History Kesehatan",
+    health_trend: "Tren Kesehatan",
+  }
+}
+
+export type DictionaryKey = keyof typeof dictionary.en

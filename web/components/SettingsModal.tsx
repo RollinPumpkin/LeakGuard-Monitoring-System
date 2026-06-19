@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { X, Settings, AlertTriangle, AlertCircle } from 'lucide-react'
 import { useThresholds } from './ThresholdProvider'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   onClose: () => void
@@ -10,6 +11,7 @@ interface Props {
 
 export function SettingsModal({ onClose }: Props) {
   const { thresholds, setThresholds } = useThresholds()
+  const { t } = useLanguage()
   const [warning, setWarning] = useState(thresholds.warning.toString())
   const [critical, setCritical] = useState(thresholds.critical.toString())
 
@@ -28,7 +30,7 @@ export function SettingsModal({ onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2 text-gray-900 font-semibold">
             <Settings size={18} />
-            <h2>Parameter Alarm (Ampere)</h2>
+            <h2>{t('threshold_settings')}</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
@@ -38,7 +40,7 @@ export function SettingsModal({ onClose }: Props) {
         <div className="p-5 space-y-4">
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-yellow-600 mb-1.5">
-              <AlertTriangle size={15} /> Batas Warning
+              <AlertTriangle size={15} /> {t('warning_threshold')}
             </label>
             <div className="relative">
               <input 
@@ -55,7 +57,7 @@ export function SettingsModal({ onClose }: Props) {
 
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-red-600 mb-1.5">
-              <AlertCircle size={15} /> Batas Critical
+              <AlertCircle size={15} /> {t('critical_threshold')}
             </label>
             <div className="relative">
               <input 
@@ -67,16 +69,16 @@ export function SettingsModal({ onClose }: Props) {
               />
               <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-medium">A</span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Sistem memasuki status Critical jika arus &gt;= {critical || 0} A.</p>
+            <p className="text-[10px] text-gray-500 mt-1">Status Critical &gt;= {critical || 0} A.</p>
           </div>
         </div>
 
         <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">
-            Batal
+            {t('cancel')}
           </button>
           <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">
-            Simpan
+            {t('save')}
           </button>
         </div>
       </div>

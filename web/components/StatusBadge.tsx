@@ -2,6 +2,7 @@
 
 import React from 'react'
 import type { AlarmStatus } from '@/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface StatusBadgeProps {
   status: AlarmStatus
@@ -15,6 +16,7 @@ const statusStyles: Record<AlarmStatus, string> = {
 }
 
 export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
+  const { t } = useLanguage()
   const sizeClasses = size === 'sm'
     ? 'px-2.5 py-0.5 text-xs'
     : 'px-3 py-1 text-sm'
@@ -23,7 +25,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
     <span
       className={`inline-flex items-center rounded-full font-semibold ring-1 ring-inset ${sizeClasses} ${statusStyles[status]}`}
     >
-      {status}
+      {t(status.toLowerCase())}
     </span>
   )
 }

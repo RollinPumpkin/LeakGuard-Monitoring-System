@@ -9,7 +9,8 @@ import {
 } from 'recharts'
 import { X, TrendingUp, Table as TableIcon, Download, Battery, Wifi } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { id as idLocale } from 'date-fns/locale'
+import { id as idLocale, enUS } from 'date-fns/locale'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   device: DeviceWithLatest | null
@@ -20,6 +21,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
   const [readings, setReadings] = useState<SensorReading[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
+  const { t, language } = useLanguage()
 
   useEffect(() => {
     if (!device) return
@@ -41,8 +43,8 @@ export function HealthDetailModal({ device, onClose }: Props) {
   if (!device) return null
 
   const chartData = readings.map((rd) => ({
-    time: format(parseISO(rd.timestamp), 'HH:mm', { locale: idLocale }),
-    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: idLocale }),
+    time: format(parseISO(rd.timestamp), 'HH:mm', { locale: language === 'id' ? idLocale : enUS }),
+    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     battery_percent: Number(rd.battery_percent ?? 0),
     battery_v: Number(rd.battery_v ?? 0).toFixed(2),
     wifi_rssi: Number(rd.wifi_rssi ?? 0),
@@ -50,7 +52,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
   }))
 
   const handleExportCSV = () => {
-    const headers = ['Tanggal', 'Waktu', 'Baterai (%)', 'Baterai (V)', 'WiFi RSSI (dBm)', 'Sistem Status']
+    const headers = [t('date'), t('time'), `${t('battery')} (%)`, `${t('battery')} (V)`, 'WiFi RSSI (dBm)', t('system_status')]
     const rows = chartData.map(d => [d.date, d.time, d.battery_percent, d.battery_v, d.wifi_rssi, d.sys_ok])
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -70,10 +72,10 @@ export function HealthDetailModal({ device, onClose }: Props) {
         <div className="flex items-start justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              History Status Alat: {device.device_id}
+              {t('history_device_status')}: {device.device_id}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Riwayat log telemetri dan kesehatan sistem
+              {t('telemetry_log_history')}
             </p>
           </div>
           <button
@@ -96,7 +98,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <TrendingUp size={16} /> Grafik Telemetri
+                <TrendingUp size={16} /> {t('telemetry_chart')}
               </button>
               <button
                 onClick={() => setActiveTab('table')}
@@ -106,7 +108,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <TableIcon size={16} /> History Log
+                <TableIcon size={16} /> {t('history_log')}
               </button>
             </nav>
           </div>
@@ -121,7 +123,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
                 <>
                   <div>
                     <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <Battery size={15} /> Kapasitas Baterai (%)
+                      <Battery size={15} /> {t('battery_capacity')} (%)
                     </h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={chartData}>
@@ -129,14 +131,14 @@ export function HealthDetailModal({ device, onClose }: Props) {
                         <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
                         <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                         <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                        <Line type="monotone" dataKey="battery_percent" name="Baterai (%)" stroke="#22c55e" strokeWidth={2} dot={true} />
+                        <Line type="monotone" dataKey="battery_percent" name={`${t('battery')} (%)`} stroke="#22c55e" strokeWidth={2} dot={true} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <Wifi size={15} /> Kekuatan Sinyal WiFi (dBm)
+                      <Wifi size={15} /> {t('wifi_signal')} (dBm)
                     </h3>
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={chartData}>
@@ -160,18 +162,18 @@ export function HealthDetailModal({ device, onClose }: Props) {
                   onClick={handleExportCSV}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >
-                  <Download size={14} /> Export CSV
+                  <Download size={14} /> {t('export_csv')}
                 </button>
               </div>
               <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Waktu</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Baterai (%)</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Tegangan (V)</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">{t('time')}</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">{t('battery')} (%)</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">{t('voltage')} (V)</th>
                       <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">WiFi RSSI</th>
-                      <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">Sistem</th>
+                      <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">{t('system')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -190,7 +192,7 @@ export function HealthDetailModal({ device, onClose }: Props) {
                     ))}
                     {chartData.length === 0 && !loading && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-xs">Belum ada data history</td>
+                        <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-xs">{t('no_data')}</td>
                       </tr>
                     )}
                   </tbody>

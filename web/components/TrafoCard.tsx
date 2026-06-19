@@ -14,6 +14,7 @@ import {
 } from '@/lib/leak'
 import { Zap, ChevronRight, AlertTriangle } from 'lucide-react'
 import { useThresholds } from './ThresholdProvider'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   device: DeviceWithLatest
@@ -22,6 +23,7 @@ interface Props {
 
 export function TrafoCard({ device, onClick }: Props) {
   const { thresholds } = useThresholds()
+  const { t } = useLanguage()
   const r = device.latest_reading
   const status = computeAlarmStatus(r, thresholds)
 
@@ -43,7 +45,7 @@ export function TrafoCard({ device, onClick }: Props) {
 
       {!r ? (
         <div className="px-5 py-10 text-center text-sm text-gray-400">
-          Belum ada data
+          {t('no_data')}
         </div>
       ) : (
         <div className="p-5 space-y-4">
@@ -59,7 +61,7 @@ export function TrafoCard({ device, onClick }: Props) {
                   className={`rounded-xl border p-3 ${phaseBg[phase]}`}
                 >
                   <p className={`text-xs font-bold mb-2 ${phaseColor[phase]}`}>
-                    Fasa {phase}
+                    {t('phase')} {phase} <span className="text-[10px] font-normal text-gray-400">(mA)</span>
                   </p>
                   <div className="space-y-1.5">
                     {phaseEma(r, phase).map((v, i) => {
@@ -84,7 +86,7 @@ export function TrafoCard({ device, onClick }: Props) {
                             {showWarning && <AlertTriangle size={10} className={valColor} />}
                           </span>
                           <span className={`font-medium ${valColor}`}>
-                            {formatMA(v)}
+                            {formatMA(v).replace(' mA', '')}
                           </span>
                         </div>
                       )
@@ -98,7 +100,7 @@ export function TrafoCard({ device, onClick }: Props) {
           {/* Average EMA R/S/T */}
           <div>
             <p className="text-[11px] font-semibold tracking-wider text-gray-400 mb-2">
-              AVERAGE EMA
+              {t('average_ema')}
             </p>
             <div className="grid grid-cols-3 gap-3">
               {PHASES.map((phase) => (
@@ -120,16 +122,16 @@ export function TrafoCard({ device, onClick }: Props) {
           {/* Prediction (placeholder) + detail */}
           <div className="flex items-center justify-between pt-1">
             <div className="text-xs text-gray-400">
-              Prediksi:{' '}
+              {t('prediction')}:{' '}
               <span className="font-medium text-gray-500">
-                {device.latest_prediction?.rf_status ?? 'Model dalam perbaikan'}
+                {device.latest_prediction?.rf_status ?? t('model_maintenance')}
               </span>
             </div>
             <button
               onClick={() => onClick(device)}
               className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
             >
-              Detail
+              {t('detail')}
               <ChevronRight size={14} />
             </button>
           </div>

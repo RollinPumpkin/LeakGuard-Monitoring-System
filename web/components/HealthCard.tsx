@@ -6,7 +6,8 @@ import {
   Battery, Wifi, WifiOff, Clock, HardDrive, Cpu, CircleCheck, CircleX,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { id as idLocale } from 'date-fns/locale'
+import { id as idLocale, enUS } from 'date-fns/locale'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   device: DeviceWithLatest
@@ -27,6 +28,7 @@ function statusPill(ok: boolean, okText: string, badText: string) {
 }
 
 export function HealthCard({ device, onClick }: Props) {
+  const { t, language } = useLanguage()
   const r = device.latest_reading
 
   const batt = Number(r?.battery_percent ?? 0)
@@ -52,12 +54,12 @@ export function HealthCard({ device, onClick }: Props) {
             <p className="text-[11px] text-gray-400">{device.location || '—'}</p>
           </div>
         </div>
-        {statusPill(sysOk, 'Sistem OK', 'Sistem Bermasalah')}
+        {statusPill(sysOk, t('system_ok'), t('system_error'))}
       </div>
 
       {!r ? (
         <div className="px-5 py-10 text-center text-sm text-gray-400">
-          Belum ada data
+          {t('no_data')}
         </div>
       ) : (
         <div className="p-5 grid grid-cols-2 gap-4">
@@ -65,7 +67,7 @@ export function HealthCard({ device, onClick }: Props) {
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center gap-2 text-gray-500 mb-2">
               <Battery size={16} />
-              <span className="text-xs font-semibold">Baterai</span>
+              <span className="text-xs font-semibold">{t('battery')}</span>
             </div>
             <p className={`text-2xl font-bold ${battColor}`}>{batt.toFixed(0)}%</p>
             <p className="text-[11px] text-gray-400 mt-1">
@@ -79,7 +81,7 @@ export function HealthCard({ device, onClick }: Props) {
               {wifiOk ? <Wifi size={16} /> : <WifiOff size={16} />}
               <span className="text-xs font-semibold">WiFi</span>
             </div>
-            <div className="mb-1">{statusPill(wifiOk, 'Terhubung', 'Terputus')}</div>
+            <div className="mb-1">{statusPill(wifiOk, t('connected'), t('disconnected'))}</div>
             <p className="text-[11px] text-gray-400">
               RSSI: {r.wifi_rssi ?? '—'} dBm
             </p>
@@ -89,11 +91,11 @@ export function HealthCard({ device, onClick }: Props) {
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center gap-2 text-gray-500 mb-2">
               <Clock size={16} />
-              <span className="text-xs font-semibold">RTC / Waktu</span>
+              <span className="text-xs font-semibold">{t('rtc_time')}</span>
             </div>
             <div className="mb-1">{statusPill(rtcOk, 'RTC OK', 'RTC Error')}</div>
             <p className="text-[11px] text-gray-400">
-              {format(parseISO(r.timestamp), 'dd MMM yyyy HH:mm:ss', { locale: idLocale })}
+              {format(parseISO(r.timestamp), 'dd MMM yyyy HH:mm:ss', { locale: language === 'id' ? idLocale : enUS })}
             </p>
           </div>
 
@@ -101,7 +103,7 @@ export function HealthCard({ device, onClick }: Props) {
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center gap-2 text-gray-500 mb-2">
               <HardDrive size={16} />
-              <span className="text-xs font-semibold">Penyimpanan SD</span>
+              <span className="text-xs font-semibold">{t('sd_storage')}</span>
             </div>
             <div className="mb-1">{statusPill(sdOk, 'SD OK', 'SD Error')}</div>
             <p className="text-[11px] text-gray-400">

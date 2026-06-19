@@ -1,17 +1,18 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Zap, Activity, HardDrive, LogOut } from 'lucide-react'
+import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-const nav = [
+const nav = (t: any) => [
   {
-    section: 'MONITORING',
+    section: t('monitoring'),
     items: [
-      { href: '/', label: 'Arus Bocor', icon: Activity },
-      { href: '/device-health', label: 'Status Alat', icon: HardDrive },
+      { href: '/', label: t('leak_current'), icon: Activity },
+      { href: '/device-health', label: t('device_status'), icon: HardDrive },
     ],
   },
 ]
@@ -20,6 +21,15 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [devices, setDevices] = useState<any[]>([])
+  const [isArusBocorOpen, setIsArusBocorOpen] = useState(true)
+  const { t, language, setLanguage } = useLanguage()
+
+  useEffect(() => {
+    supabase.from('devices').select('device_id').order('device_id').then(({ data }) => {
+      if (data) setDevices(data)
+    })
+  }, [supabase])
 
   if (pathname === '/login') return null
 
@@ -36,13 +46,13 @@ export function Sidebar() {
           <Zap size={18} className="text-white" />
         </div>
         <div className="leading-tight">
-          <p className="text-sm font-bold text-gray-900">LeakGuard</p>
-          <p className="text-[11px] text-gray-400">Transformer Monitoring</p>
+          <p className="text-sm font-bold text-gray-900">{t('leakguard')}</p>
+          <p className="text-[11px] text-gray-400">{t('transformer_monitoring')}</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-6">
-        {nav.map((group) => (
+      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+        {nav(t).map((group) => (
           <div key={group.section}>
             <p className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-gray-400">
               {group.section}
@@ -51,19 +61,42 @@ export function Sidebar() {
               {group.items.map((item) => {
                 const active = pathname === item.href
                 const Icon = item.icon
+                const isArusBocor = item.href === '/'
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      active
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon size={17} />
-                    {item.label}
-                  </Link>
+                  <div key={item.href}>
+                    <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                        active && !isArusBocor
+                          ? 'bg-blue-50 text-blue-700 font-medium'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Link href={item.href} className="flex items-center gap-3 flex-1">
+                        <Icon size={17} className={active ? 'text-blue-600' : ''} />
+                        <span className={active ? 'text-blue-600 font-medium' : ''}>{item.label}</span>
+                      </Link>
+                      {isArusBocor && devices.length > 0 && (
+                        <button onClick={() => setIsArusBocorOpen(!isArusBocorOpen)} className="p-1">
+                          {isArusBocorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Submenu untuk Trafo */}
+                    {isArusBocor && isArusBocorOpen && devices.length > 0 && (
+                      <div className="mt-1 ml-9 space-y-1">
+                        {devices.map(d => (
+                          <Link
+                            key={d.device_id}
+                            href={`/?device=${d.device_id}`}
+                            className="block px-3 py-1.5 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          >
+                            Trafo {d.device_id}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -72,12 +105,26 @@ export function Sidebar() {
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-100 flex flex-col gap-2">
+        <div className="flex bg-gray-100 rounded-lg p-1 mb-2">
+          <button
+            onClick={() => setLanguage('id')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${language === 'id' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            ID
+          </button>
+          <button
+            onClick={() => setLanguage('en')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${language === 'en' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            EN
+          </button>
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-red-600 hover:bg-red-50"
         >
           <LogOut size={17} />
-          Keluar
+          {t('logout')}
         </button>
         <div className="text-[11px] text-gray-400 mt-2">
           Septa Puma Surya · Polinema 2026

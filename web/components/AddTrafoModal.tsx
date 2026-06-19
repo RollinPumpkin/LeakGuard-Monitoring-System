@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { addDevice } from '@/lib/data'
 import { X } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   onClose: () => void
@@ -15,6 +16,7 @@ export function AddTrafoModal({ onClose, onAdded }: Props) {
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   const handleSave = async () => {
     if (!deviceId.trim()) {
@@ -41,7 +43,7 @@ export function AddTrafoModal({ onClose, onAdded }: Props) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Tambah Trafo</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('add_new_trafo')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 p-1"
@@ -69,12 +71,12 @@ export function AddTrafoModal({ onClose, onAdded }: Props) {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Lokasi
+              {t('location')}
             </label>
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Gardu Beton Dua"
+              placeholder={t('location_placeholder')}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -96,14 +98,14 @@ export function AddTrafoModal({ onClose, onAdded }: Props) {
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
           >
-            Batal
+            {t('cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
           >
-            {saving ? 'Menyimpan...' : 'Simpan'}
+            {saving ? t('loading') : t('save')}
           </button>
         </div>
       </div>

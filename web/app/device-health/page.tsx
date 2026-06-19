@@ -7,13 +7,15 @@ import { HealthDetailModal } from '@/components/HealthDetailModal'
 import { loadDevicesWithLatest } from '@/lib/data'
 import { RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
-import { id as idLocale } from 'date-fns/locale'
+import { id as idLocale, enUS } from 'date-fns/locale'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function DeviceHealthPage() {
   const [devices, setDevices] = useState<DeviceWithLatest[]>([])
   const [selected, setSelected] = useState<DeviceWithLatest | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const { t, language } = useLanguage()
 
   const refresh = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true)
@@ -58,14 +60,14 @@ export default function DeviceHealthPage() {
       <header className="bg-white border-b border-gray-200 px-6 h-16 flex items-center">
         <div className="flex items-center justify-between w-full">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Status Alat</h1>
+            <h1 className="text-lg font-bold text-gray-900">{t('alat_monitoring')}</h1>
             <p className="text-xs text-gray-500">
-              Baterai, WiFi, RTC/Waktu, dan kondisi sistem alat monitoring
+              {t('alat_desc')}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">
-              {format(lastUpdate, 'EEEE, d MMMM yyyy', { locale: idLocale })}
+              {format(lastUpdate, 'EEEE, d MMMM yyyy', { locale: language === 'id' ? idLocale : enUS })}
             </span>
             <button
               onClick={() => refresh(true)}
@@ -84,11 +86,11 @@ export default function DeviceHealthPage() {
             <div className="flex justify-center">
               <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
             </div>
-            <p className="text-sm text-gray-500 mt-4">Memuat status alat...</p>
+            <p className="text-sm text-gray-500 mt-4">{t('loading')}</p>
           </div>
         ) : devices.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <p className="text-sm text-gray-500">Belum ada alat terdaftar.</p>
+            <p className="text-sm text-gray-500">{t('no_data')}</p>
           </div>
         ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
