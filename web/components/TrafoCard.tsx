@@ -12,7 +12,8 @@ import {
   formatMA,
   computeAlarmStatus,
 } from '@/lib/leak'
-import { Zap, ChevronRight } from 'lucide-react'
+import { Zap, ChevronRight, AlertTriangle } from 'lucide-react'
+import { useThresholds } from './ThresholdProvider'
 
 interface Props {
   device: DeviceWithLatest
@@ -20,8 +21,9 @@ interface Props {
 }
 
 export function TrafoCard({ device, onClick }: Props) {
+  const { thresholds } = useThresholds()
   const r = device.latest_reading
-  const status = computeAlarmStatus(r)
+  const status = computeAlarmStatus(r, thresholds)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -60,20 +62,33 @@ export function TrafoCard({ device, onClick }: Props) {
                     Fasa {phase}
                   </p>
                   <div className="space-y-1.5">
-                    {phaseEma(r, phase).map((v, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-gray-400">
-                          {phase}
-                          {i + 1}
-                        </span>
-                        <span className="font-medium text-gray-800">
-                          {formatMA(v)}
-                        </span>
-                      </div>
-                    ))}
+                    {phaseEma(r, phase).map((v, i) => {
+                      const amp = Number(v)
+                      let valColor = 'text-gray-800'
+                      let showWarning = false
+                      if (amp >= thresholds.critical) {
+                        valColor = 'text-red-600 font-bold'
+                        showWarning = true
+                      } else if (amp >= thresholds.warning) {
+                        valColor = 'text-yellow-600 font-bold'
+                        showWarning = true
+                      }
+                      
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-gray-400 flex items-center gap-1">
+                            {phase}{i + 1}
+                            {showWarning && <AlertTriangle size={10} className={valColor} />}
+                          </span>
+                          <span className={`font-medium ${valColor}`}>
+                            {formatMA(v)}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))}

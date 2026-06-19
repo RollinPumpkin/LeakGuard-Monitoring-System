@@ -6,9 +6,11 @@ import { MetricCard } from '@/components/MetricCard'
 import { TrafoCard } from '@/components/TrafoCard'
 import { TrafoDetailModal } from '@/components/TrafoDetailModal'
 import { AddTrafoModal } from '@/components/AddTrafoModal'
+import { SettingsModal } from '@/components/SettingsModal'
+import { useThresholds } from '@/components/ThresholdProvider'
 import { loadDevicesWithLatest } from '@/lib/data'
 import { computeAlarmStatus } from '@/lib/leak'
-import { Zap, CheckCircle, AlertTriangle, XCircle, RefreshCw, Plus } from 'lucide-react'
+import { Zap, CheckCircle, AlertTriangle, XCircle, RefreshCw, Plus, Settings } from 'lucide-react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 
@@ -16,8 +18,11 @@ export default function DashboardPage() {
   const [devices, setDevices] = useState<DeviceWithLatest[]>([])
   const [selected, setSelected] = useState<DeviceWithLatest | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  
+  const { thresholds } = useThresholds()
 
   const refresh = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true)
@@ -57,7 +62,7 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(channel) }
   }, [refresh])
 
-  const statuses = devices.map((d) => computeAlarmStatus(d.latest_reading))
+  const statuses = devices.map((d) => computeAlarmStatus(d.latest_reading, thresholds))
   const metrics = {
     total: devices.length,
     normal: statuses.filter((s) => s === 'Normal').length,
@@ -81,6 +86,13 @@ export default function DashboardPage() {
             <span className="text-xs text-gray-400">
               {format(lastUpdate, 'EEEE, d MMMM yyyy', { locale: idLocale })}
             </span>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Pengaturan Parameter Alarm"
+            >
+              <Settings size={16} />
+            </button>
             <button
               onClick={() => refresh(true)}
               className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -132,6 +144,9 @@ export default function DashboardPage() {
       )}
       {showAdd && (
         <AddTrafoModal onClose={() => setShowAdd(false)} onAdded={() => refresh(true)} />
+      )}
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} />
       )}
     </div>
   )

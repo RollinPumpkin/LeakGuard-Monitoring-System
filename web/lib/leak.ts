@@ -9,16 +9,23 @@ export function formatMA(valueAmp: number | null | undefined, digits = 1): strin
   return `${toMilliAmp(valueAmp).toFixed(digits)} mA`
 }
 
-// Threshold sementara (placeholder, sebelum model ML disambungkan).
-// Berbasis arus bocor maksimum sistem (Ampere).
-const WARNING_A = 0.05
-const CRITICAL_A = 0.15
+// Threshold default (Ampere)
+export const DEFAULT_WARNING_A = 1.0
+export const DEFAULT_CRITICAL_A = 2.0
 
-export function computeAlarmStatus(r: SensorReading | null): AlarmStatus {
+export interface AlarmThresholds {
+  warning: number
+  critical: number
+}
+
+export function computeAlarmStatus(r: SensorReading | null, thresholds?: AlarmThresholds): AlarmStatus {
   if (!r) return 'Normal'
   const max = Number(r.system_ema_max) || 0
-  if (max >= CRITICAL_A) return 'Critical'
-  if (max >= WARNING_A) return 'Warning'
+  const w = thresholds?.warning ?? DEFAULT_WARNING_A
+  const c = thresholds?.critical ?? DEFAULT_CRITICAL_A
+
+  if (max >= c) return 'Critical'
+  if (max >= w) return 'Warning'
   return 'Normal'
 }
 

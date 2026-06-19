@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { DeviceWithLatest, SensorReading } from '@/types'
 import { StatusBadge } from './StatusBadge'
+import { useThresholds } from './ThresholdProvider'
 import { supabase } from '@/lib/supabase'
 import {
   PHASES,
@@ -14,10 +15,10 @@ import {
   computeAlarmStatus,
 } from '@/lib/leak'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Brush
 } from 'recharts'
-import { X, TrendingUp, Zap, Table as TableIcon, Download } from 'lucide-react'
+import { X, TrendingUp, Zap, Table as TableIcon, Download, BarChart2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 
@@ -27,9 +28,12 @@ interface Props {
 }
 
 export function TrafoDetailModal({ device, onClose }: Props) {
+  const { thresholds } = useThresholds()
   const [readings, setReadings] = useState<SensorReading[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line')
+  const [selectedView, setSelectedView] = useState<'average' | 'R' | 'S' | 'T'>('average')
 
   useEffect(() => {
     if (!device) return
@@ -51,19 +55,41 @@ export function TrafoDetailModal({ device, onClose }: Props) {
   if (!device) return null
 
   const r = device.latest_reading
-  const status = computeAlarmStatus(r)
+  const status = computeAlarmStatus(r, thresholds)
 
-  const chartData = readings.map((rd) => ({
-    time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: idLocale }),
-    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: idLocale }),
-    R: Number(toMilliAmp(rd.ir_ema_avg).toFixed(2)),
-    S: Number(toMilliAmp(rd.is_ema_avg).toFixed(2)),
-    T: Number(toMilliAmp(rd.it_ema_avg).toFixed(2)),
-  }))
+  const chartData = readings.map((rd) => {
+    const base = {
+      time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: idLocale }),
+      date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: idLocale }),
+    }
+    if (selectedView === 'average') {
+      return {
+        ...base,
+        R: Number(toMilliAmp(rd.ir_ema_avg).toFixed(2)),
+        S: Number(toMilliAmp(rd.is_ema_avg).toFixed(2)),
+        T: Number(toMilliAmp(rd.it_ema_avg).toFixed(2)),
+      }
+    } else {
+      const p = selectedView.toLowerCase()
+      return {
+        ...base,
+        [`${selectedView}1`]: Number(toMilliAmp(Number(rd[`i${p}1_ema` as keyof SensorReading])).toFixed(2)),
+        [`${selectedView}2`]: Number(toMilliAmp(Number(rd[`i${p}2_ema` as keyof SensorReading])).toFixed(2)),
+        [`${selectedView}3`]: Number(toMilliAmp(Number(rd[`i${p}3_ema` as keyof SensorReading])).toFixed(2)),
+      }
+    }
+  })
 
   const handleExportCSV = () => {
-    const headers = ['Tanggal', 'Waktu', 'Fasa R (mA)', 'Fasa S (mA)', 'Fasa T (mA)']
-    const rows = chartData.map(d => [d.date, d.time, d.R, d.S, d.T])
+    const isAvg = selectedView === 'average'
+    const headers = isAvg 
+      ? ['Tanggal', 'Waktu', 'Fasa R (mA)', 'Fasa S (mA)', 'Fasa T (mA)']
+      : ['Tanggal', 'Waktu', `${selectedView}1 (mA)`, `${selectedView}2 (mA)`, `${selectedView}3 (mA)`]
+    
+    const rows = chartData.map(d => isAvg 
+      ? [d.date, d.time, d.R, d.S, d.T]
+      : [d.date, d.time, d[`${selectedView}1`], d[`${selectedView}2`], d[`${selectedView}3`]]
+    )
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -141,7 +167,12 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                 {PHASES.map((phase) => (
                   <div
                     key={phase}
-                    className="bg-gray-50 rounded-lg p-3 border border-gray-100 text-center"
+                    onClick={() => setSelectedView(selectedView === phase ? 'average' : phase)}
+                    className={`rounded-lg p-3 border text-center cursor-pointer transition-all ${
+                      selectedView === phase 
+                        ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' 
+                        : 'bg-gray-50 border-gray-100 hover:border-blue-200'
+                    }`}
                   >
                     <p className={`text-xs font-semibold mb-1 ${phaseColor[phase]}`}>
                       Fasa {phase}
@@ -186,25 +217,78 @@ export function TrafoDetailModal({ device, onClose }: Props) {
 
           {activeTab === 'chart' && (
             <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <TrendingUp size={15} />
+                  Tren Arus Bocor EMA ({selectedView === 'average' ? 'Average' : `Fasa ${selectedView}`}) (mA)
+                </h3>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setChartType('line')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'line' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <TrendingUp size={13} /> Line
+                  </button>
+                  <button
+                    onClick={() => setChartType('bar')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <BarChart2 size={13} /> Bar
+                  </button>
+                </div>
+              </div>
+
               {loading ? (
                 <div className="h-48 flex items-center justify-center">
                   <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full" />
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                      formatter={(value) => [`${Number(value ?? 0)} mA`]}
-                    />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                    <Line type="monotone" dataKey="R" stroke="#ef4444" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="S" stroke="#eab308" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="T" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                  </LineChart>
+                <ResponsiveContainer width="100%" height={260}>
+                  {chartType === 'line' ? (
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      {selectedView === 'average' ? (
+                        <>
+                          <Line type="monotone" dataKey="R" stroke="#ef4444" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="S" stroke="#eab308" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="T" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        </>
+                      ) : (
+                        <>
+                          <Line type="monotone" dataKey={`${selectedView}1`} stroke="#ef4444" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey={`${selectedView}2`} stroke="#eab308" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey={`${selectedView}3`} stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        </>
+                      )}
+                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />
+                    </LineChart>
+                  ) : (
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      {selectedView === 'average' ? (
+                        <>
+                          <Bar dataKey="R" fill="#ef4444" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="S" fill="#eab308" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="T" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                        </>
+                      ) : (
+                        <>
+                          <Bar dataKey={`${selectedView}1`} fill="#ef4444" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey={`${selectedView}2`} fill="#eab308" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey={`${selectedView}3`} fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                        </>
+                      )}
+                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               )}
             </div>
@@ -225,18 +309,38 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Waktu</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">R (mA)</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">S (mA)</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">T (mA)</th>
+                      {selectedView === 'average' ? (
+                        <>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">R (mA)</th>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">S (mA)</th>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">T (mA)</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">{selectedView}1 (mA)</th>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">{selectedView}2 (mA)</th>
+                          <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">{selectedView}3 (mA)</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {chartData.map((d, idx) => (
+                    {chartData.map((d: any, idx: number) => (
                       <tr key={idx} className="hover:bg-gray-50">
                         <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{d.date} {d.time}</td>
-                        <td className="px-4 py-2 text-right font-medium text-red-600">{d.R}</td>
-                        <td className="px-4 py-2 text-right font-medium text-yellow-600">{d.S}</td>
-                        <td className="px-4 py-2 text-right font-medium text-blue-600">{d.T}</td>
+                        {selectedView === 'average' ? (
+                          <>
+                            <td className="px-4 py-2 text-right font-medium text-red-600">{d.R}</td>
+                            <td className="px-4 py-2 text-right font-medium text-yellow-600">{d.S}</td>
+                            <td className="px-4 py-2 text-right font-medium text-blue-600">{d.T}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-4 py-2 text-right font-medium text-red-600">{d[`${selectedView}1`]}</td>
+                            <td className="px-4 py-2 text-right font-medium text-yellow-600">{d[`${selectedView}2`]}</td>
+                            <td className="px-4 py-2 text-right font-medium text-blue-600">{d[`${selectedView}3`]}</td>
+                          </>
+                        )}
                       </tr>
                     ))}
                     {chartData.length === 0 && !loading && (
