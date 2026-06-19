@@ -35,7 +35,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // Prevent hydration mismatch by returning null until mounted, 
   // or just render children but we don't want flashing text
   if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>
+    return (
+      <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <div style={{ visibility: 'hidden' }}>{children}</div>
+      </LanguageContext.Provider>
+    )
   }
 
   return (

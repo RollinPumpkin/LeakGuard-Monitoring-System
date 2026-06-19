@@ -3,6 +3,7 @@
 import React from 'react'
 import type { AlarmStatus } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { DictionaryKey } from '@/lib/translations'
 
 interface StatusBadgeProps {
   status: AlarmStatus
@@ -25,7 +26,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
     <span
       className={`inline-flex items-center rounded-full font-semibold ring-1 ring-inset ${sizeClasses} ${statusStyles[status]}`}
     >
-      {t(status.toLowerCase())}
+      {t(status.toLowerCase() as DictionaryKey)}
     </span>
   )
 }
