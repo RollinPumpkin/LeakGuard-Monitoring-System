@@ -5,6 +5,7 @@ import { DeviceWithLatest } from '@/types'
 import { MetricCard } from '@/components/MetricCard'
 import { TrafoCard } from '@/components/TrafoCard'
 import { TrafoDetailModal } from '@/components/TrafoDetailModal'
+import { DashboardChart } from '@/components/DashboardChart'
 import { AddTrafoModal } from '@/components/AddTrafoModal'
 import { SettingsModal } from '@/components/SettingsModal'
 import { useThresholds } from '@/components/ThresholdProvider'
@@ -136,6 +137,10 @@ export default function DashboardPage() {
               <TrafoCard key={device.id} device={device} onClick={setSelected} />
             ))}
           </div>
+        )}
+
+        {!loading && devices.length > 0 && (
+          <DashboardChart devices={devices} />
         )}
       </main>
 
