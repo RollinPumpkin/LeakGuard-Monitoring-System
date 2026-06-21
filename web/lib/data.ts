@@ -51,3 +51,12 @@ export async function addDevice(input: {
   ])
   return { error: error?.message ?? null }
 }
+
+export async function deleteDevice(device_id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('devices')
+    .update({ is_active: false })
+    .eq('device_id', device_id)
+  
+  return { error: error?.message ?? null }
+}

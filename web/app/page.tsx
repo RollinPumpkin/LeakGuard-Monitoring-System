@@ -4,9 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { DeviceWithLatest } from '@/types'
 import { MetricCard } from '@/components/MetricCard'
-import { TrafoCard } from '@/components/TrafoCard'
-import { TrafoDetailModal } from '@/components/TrafoDetailModal'
-import { DashboardChart } from '@/components/DashboardChart'
+import { SingleTrafoDashboard } from '@/components/SingleTrafoDashboard'
 import { AddTrafoModal } from '@/components/AddTrafoModal'
 import { SettingsModal } from '@/components/SettingsModal'
 import { useThresholds } from '@/components/ThresholdProvider'
@@ -60,9 +58,19 @@ function DashboardContent() {
 
   useEffect(() => {
     const deviceQuery = searchParams.get('device')
-    if (deviceQuery && devices.length > 0) {
-      const found = devices.find(d => d.device_id === deviceQuery)
-      if (found) setSelected(found)
+    if (devices.length > 0) {
+      if (deviceQuery) {
+        const found = devices.find(d => d.device_id === deviceQuery)
+        if (found) {
+          setSelected(found)
+        } else {
+          setSelected(devices[0])
+        }
+      } else {
+        setSelected(devices[0])
+      }
+    } else {
+      setSelected(null)
     }
   }, [searchParams, devices])
 
@@ -167,30 +175,20 @@ function DashboardContent() {
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-sm text-gray-500">Belum ada trafo. Tambahkan trafo untuk mulai monitoring.</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-            {devices.map((device) => (
-              <TrafoCard key={device.id} device={device} onClick={setSelected} />
-            ))}
-          </div>
-        )}
-
-        {!loading && devices.length > 0 && (
-          <DashboardChart devices={devices} />
-        )}
+        ) : selected ? (
+          <SingleTrafoDashboard 
+            device={selected} 
+            onDeleted={() => {
+              setSelected(null)
+              if (searchParams.has('device')) {
+                window.history.replaceState(null, '', '/')
+              }
+              refresh(true)
+            }} 
+          />
+        ) : null}
       </main>
 
-      {selected && (
-        <TrafoDetailModal
-          device={selected}
-          onClose={() => {
-            setSelected(null)
-            if (searchParams.has('device')) {
-              window.history.replaceState(null, '', '/')
-            }
-          }}
-        />
-      )}
       {showAdd && (
         <AddTrafoModal onClose={() => setShowAdd(false)} onAdded={() => refresh(true)} />
       )}

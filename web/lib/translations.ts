@@ -15,6 +15,9 @@ export const dictionary = {
     edit: "Edit",
     export_csv: "Export CSV",
     logout: "Log Out",
+    delete_trafo: "Delete Trafo",
+    confirm_delete: "Are you sure you want to delete this Trafo?",
+    trafo_deleted: "Trafo deleted successfully",
     
     // Sidebar
     monitoring: "MONITORING",
@@ -124,6 +127,9 @@ export const dictionary = {
     edit: "Ubah",
     export_csv: "Export CSV",
     logout: "Keluar",
+    delete_trafo: "Hapus Trafo",
+    confirm_delete: "Apakah Anda yakin ingin menghapus Trafo ini?",
+    trafo_deleted: "Trafo berhasil dihapus",
     
     // Sidebar
     monitoring: "MONITORING",
