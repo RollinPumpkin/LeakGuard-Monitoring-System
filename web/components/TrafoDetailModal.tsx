@@ -76,17 +76,17 @@ export function TrafoDetailModal({ device, onClose }: Props) {
     if (selectedView === 'average') {
       return {
         ...base,
-        R: Number(toMilliAmp(rd.ir_ema_avg).toFixed(2)),
-        S: Number(toMilliAmp(rd.is_ema_avg).toFixed(2)),
-        T: Number(toMilliAmp(rd.it_ema_avg).toFixed(2)),
+        R: Number(toMilliAmp(phaseEmaAvg(rd, 'R')).toFixed(2)),
+        S: Number(toMilliAmp(phaseEmaAvg(rd, 'S')).toFixed(2)),
+        T: Number(toMilliAmp(phaseEmaAvg(rd, 'T')).toFixed(2)),
       }
     } else {
       const p = selectedView.toLowerCase()
       return {
         ...base,
-        [`${selectedView}1`]: Number(toMilliAmp(Number(rd[`i${p}1_ema` as keyof SensorReading])).toFixed(2)),
-        [`${selectedView}2`]: Number(toMilliAmp(Number(rd[`i${p}2_ema` as keyof SensorReading])).toFixed(2)),
-        [`${selectedView}3`]: Number(toMilliAmp(Number(rd[`i${p}3_ema` as keyof SensorReading])).toFixed(2)),
+        [`${selectedView}1`]: Number(toMilliAmp(Number(rd[`${p}1` as keyof SensorReading])).toFixed(2)),
+        [`${selectedView}2`]: Number(toMilliAmp(Number(rd[`${p}2` as keyof SensorReading])).toFixed(2)),
+        [`${selectedView}3`]: Number(toMilliAmp(Number(rd[`${p}3` as keyof SensorReading])).toFixed(2)),
       }
     }
   })

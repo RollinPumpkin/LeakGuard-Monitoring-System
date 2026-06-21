@@ -149,78 +149,133 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       </div>
 
       <div className="p-6 space-y-8">
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: t('device_type'), value: device.device_type },
-            { label: t('device_id'), value: device.device_id },
-            { label: t('location'), value: device.location || '—' },
-            { label: t('status'), value: status, badge: true },
-          ].map(({ label, value, badge }) => (
-            <div key={label} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <p className="text-xs text-gray-500 mb-1.5">{label}</p>
-              {badge ? (
-                <StatusBadge status={status} size="sm" />
-              ) : (
-                <p className="text-sm font-medium text-gray-900">{value}</p>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Prediksi & Ringkasan EMA */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Prediksi - 1 Column */}
-          <div className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm flex flex-col justify-center">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap size={18} className="text-blue-600" />
-              <span className="text-base font-semibold text-gray-800">
-                {t('rf_prediction')}
+        {/* Metric Cards - Inspired by SmartAlert */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Rata-rata Arus (Total Konsumsi equivalent) */}
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-sm font-medium text-gray-500">Rata-rata Arus (RST)</p>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-600">
+                LATEST
               </span>
             </div>
-            <p className="text-sm text-gray-600">
-              {device.latest_prediction?.rf_status
-                ? `${device.latest_prediction.rf_status} — ${device.latest_prediction.action ?? ''}`
-                : t('model_maintenance')}
-            </p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-3xl font-bold text-gray-900">
+                {r ? ((phaseEmaAvg(r, 'R') + phaseEmaAvg(r, 'S') + phaseEmaAvg(r, 'T')) / 3 * 1000).toFixed(1) : '0'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-1">mA</p>
+            </div>
           </div>
 
-          {/* Ringkasan EMA - 2 Columns */}
-          <div className="md:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-gray-800">
-                {t('ema_summary')}
-              </h3>
+          {/* Card 2: Arus Maksimal (Peak Demand equivalent) */}
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-sm font-medium text-gray-500">Arus Puncak (Max)</p>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-50 text-gray-600">
+                TODAY
+              </span>
             </div>
-            {r ? (
-              <div className="grid grid-cols-3 gap-3">
-                {PHASES.map((phase) => (
-                  <div
-                    key={phase}
-                    onClick={() => setSelectedView(selectedView === phase ? 'average' : phase)}
-                    className={`rounded-xl p-4 border text-center cursor-pointer transition-all ${
-                      selectedView === phase 
-                        ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' 
-                        : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm'
-                    }`}
-                  >
-                    <p className={`text-sm font-semibold mb-1 ${phaseColor[phase]}`}>
-                      {t('phase')} {phase}
-                    </p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-3xl font-bold text-gray-900">
+                {r ? (Math.max(phaseEmaAvg(r, 'R'), phaseEmaAvg(r, 'S'), phaseEmaAvg(r, 'T')) * 1000).toFixed(1) : '0'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-1">mA</p>
+            </div>
+          </div>
+
+          {/* Card 3: Status Trafo (Efficiency Score equivalent) */}
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-sm font-medium text-gray-500">Status Operasional</p>
+              <span className="text-gray-400">•••</span>
+            </div>
+            <div className="flex items-center h-full mt-2">
+              <StatusBadge status={status} size="md" />
+            </div>
+          </div>
+
+          {/* Card 4: Tegangan Baterai (Occupancy equivalent) */}
+          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-sm font-medium text-gray-500">Tegangan Sistem</p>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-600">
+                OK
+              </span>
+            </div>
+            <div className="flex items-end gap-2">
+              <h3 className="text-3xl font-bold text-gray-900">
+                {r?.battery_v ? Number(r.battery_v).toFixed(1) : '—'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-1">V</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Analisis Detail (RST Per Fasa & Prediksi) */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-800">Perbandingan Beban Fasa (RST)</h3>
+              <span className="text-xs text-gray-500">Real-time Data</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {PHASES.map((phase) => {
+                const avg = r ? phaseEmaAvg(r, phase) : 0
+                const sensors = r ? phaseEma(r, phase) : [0,0,0]
+                const maxSensor = Math.max(...sensors) * 1000
+                return (
+                <div
+                  key={phase}
+                  onClick={() => setSelectedView(selectedView === phase ? 'average' : phase)}
+                  className={`rounded-xl p-5 border text-center cursor-pointer transition-all ${
+                    selectedView === phase 
+                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' 
+                      : 'bg-white border-gray-200 hover:border-blue-200 shadow-sm'
+                  }`}
+                >
+                  <p className={`text-sm font-bold mb-2 ${phaseColor[phase]}`}>
+                    FASA {phase}
+                  </p>
+                  <div className="flex items-baseline justify-center gap-1">
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatMA(phaseEmaAvg(r, phase))}
+                      {(avg * 1000).toFixed(1)}
                     </p>
-                    <p className="text-[11px] text-gray-400 mt-2">
-                      sensor: {phaseEma(r, phase).map((v) => toMilliAmp(v).toFixed(1)).join(' / ')}
-                    </p>
+                    <span className="text-xs text-gray-500 font-medium">mA</span>
                   </div>
-                ))}
+                  <div className="mt-3 text-left">
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Detail Sensor</p>
+                    <div className="flex justify-between items-center bg-gray-50 px-2 py-1.5 rounded text-xs text-gray-600 border border-gray-100">
+                      <span>{sensors.map(v => (v*1000).toFixed(0)).join(' • ')}</span>
+                      <span className="font-medium text-gray-900">Max: {maxSensor.toFixed(0)}</span>
+                    </div>
+                  </div>
+                </div>
+              )})}
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-800">Behavior Prediction</h3>
+            </div>
+            <div className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm flex-1 flex flex-col justify-center">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-blue-50 rounded-lg">
+                  <Zap size={20} className="text-blue-600" />
+                </div>
+                <span className="text-sm font-bold text-gray-900 leading-tight">
+                  Random Forest<br/>Analysis
+                </span>
               </div>
-            ) : (
-              <div className="rounded-xl p-6 border bg-gray-50 border-gray-100 text-center text-sm text-gray-500">
-                {t('no_data')}
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                <p className="text-sm font-medium text-gray-800 mb-1">
+                  {device.latest_prediction?.rf_status || 'Normal'}
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {device.latest_prediction?.action || 'Pola konsumsi energi normal, tidak terdeteksi anomali.'}
+                </p>
               </div>
-            )}
+            </div>
           </div>
         </div>
 

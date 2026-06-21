@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu } from 'lucide-react'
+import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu, BarChart2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -12,6 +12,7 @@ const nav = (t: any) => [
     section: t('monitoring'),
     items: [
       { href: '/', label: t('leak_current'), icon: Activity },
+      { href: '/prediction', label: 'Prediction Behavior', icon: BarChart2 },
       { href: '/device-health', label: t('device_status'), icon: HardDrive },
     ],
   },

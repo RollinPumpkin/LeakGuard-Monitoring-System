@@ -10,7 +10,7 @@ import {
 import { TrendingUp, Activity } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
-import { toMilliAmp } from '@/lib/leak'
+import { toMilliAmp, phaseEmaAvg } from '@/lib/leak'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
@@ -61,9 +61,9 @@ export function DashboardChart({ devices }: Props) {
   const chartData = readings.map((rd) => ({
     time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }),
     date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-    R: Number(toMilliAmp(rd.ir_ema_avg).toFixed(2)),
-    S: Number(toMilliAmp(rd.is_ema_avg).toFixed(2)),
-    T: Number(toMilliAmp(rd.it_ema_avg).toFixed(2)),
+    R: Number(toMilliAmp(phaseEmaAvg(rd, 'R')).toFixed(2)),
+    S: Number(toMilliAmp(phaseEmaAvg(rd, 'S')).toFixed(2)),
+    T: Number(toMilliAmp(phaseEmaAvg(rd, 'T')).toFixed(2)),
   }))
 
   return (
