@@ -35,7 +35,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
   const [chartType, setChartType] = useState<'line' | 'bar'>('line')
-  const [selectedView, setSelectedView] = useState<'average' | 'R' | 'S' | 'T'>('average')
   const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week')
   const [isDeleting, setIsDeleting] = useState(false)
   const { t, language } = useLanguage()
@@ -82,38 +81,44 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const r = device.latest_reading
   const status = computeAlarmStatus(r, thresholds)
 
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayReadings = readings.filter(rd => rd.timestamp.startsWith(todayStr))
+  
+  let maxToday = 0
+  if (todayReadings.length > 0) {
+    maxToday = Math.max(...todayReadings.map(rd => 
+      Math.max(phaseEmaAvg(rd, 'R'), phaseEmaAvg(rd, 'S'), phaseEmaAvg(rd, 'T'))
+    ))
+  } else if (r) {
+    maxToday = Math.max(phaseEmaAvg(r, 'R'), phaseEmaAvg(r, 'S'), phaseEmaAvg(r, 'T'))
+  }
+
   const chartData = readings.map((rd) => {
     const base = {
       time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }),
       date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     }
-    if (selectedView === 'average') {
-      return {
-        ...base,
-        R: Number(toMilliAmp((Number(rd.r1) + Number(rd.r2) + Number(rd.r3)) / 3).toFixed(2)),
-        S: Number(toMilliAmp((Number(rd.s1) + Number(rd.s2) + Number(rd.s3)) / 3).toFixed(2)),
-        T: Number(toMilliAmp((Number(rd.t1) + Number(rd.t2) + Number(rd.t3)) / 3).toFixed(2)),
-      }
-    } else {
-      const p = selectedView.toLowerCase()
-      return {
-        ...base,
-        [`${selectedView}1`]: Number(toMilliAmp(Number(rd[`${p}1` as keyof SensorReading])).toFixed(2)),
-        [`${selectedView}2`]: Number(toMilliAmp(Number(rd[`${p}2` as keyof SensorReading])).toFixed(2)),
-        [`${selectedView}3`]: Number(toMilliAmp(Number(rd[`${p}3` as keyof SensorReading])).toFixed(2)),
-      }
+    return {
+      ...base,
+      R: Number(toMilliAmp((Number(rd.r1) + Number(rd.r2) + Number(rd.r3)) / 3).toFixed(2)),
+      S: Number(toMilliAmp((Number(rd.s1) + Number(rd.s2) + Number(rd.s3)) / 3).toFixed(2)),
+      T: Number(toMilliAmp((Number(rd.t1) + Number(rd.t2) + Number(rd.t3)) / 3).toFixed(2)),
+      r1: Number(toMilliAmp(Number(rd.r1)).toFixed(2)),
+      r2: Number(toMilliAmp(Number(rd.r2)).toFixed(2)),
+      r3: Number(toMilliAmp(Number(rd.r3)).toFixed(2)),
+      s1: Number(toMilliAmp(Number(rd.s1)).toFixed(2)),
+      s2: Number(toMilliAmp(Number(rd.s2)).toFixed(2)),
+      s3: Number(toMilliAmp(Number(rd.s3)).toFixed(2)),
+      t1: Number(toMilliAmp(Number(rd.t1)).toFixed(2)),
+      t2: Number(toMilliAmp(Number(rd.t2)).toFixed(2)),
+      t3: Number(toMilliAmp(Number(rd.t3)).toFixed(2)),
     }
   })
 
   const handleExportCSV = () => {
-    const isAvg = selectedView === 'average'
-    const headers = isAvg 
-      ? ['Tanggal', 'Waktu', 'Fasa R (mA)', 'Fasa S (mA)', 'Fasa T (mA)']
-      : ['Tanggal', 'Waktu', `${selectedView}1 (mA)`, `${selectedView}2 (mA)`, `${selectedView}3 (mA)`]
-    
-    const rows = chartData.map((d: any) => isAvg 
-      ? [d.date, d.time, d.R, d.S, d.T]
-      : [d.date, d.time, d[`${selectedView}1`], d[`${selectedView}2`], d[`${selectedView}3`]]
+    const headers = ['Tanggal', 'Waktu', 'Avg R', 'Avg S', 'Avg T', 'R1', 'R2', 'R3', 'S1', 'S2', 'S3', 'T1', 'T2', 'T3']
+    const rows = chartData.map((d: any) => 
+      [d.date, d.time, d.R, d.S, d.T, d.r1, d.r2, d.r3, d.s1, d.s2, d.s3, d.t1, d.t2, d.t3]
     )
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -125,6 +130,102 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     link.click()
     document.body.removeChild(link)
   }
+
+  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+        <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+          <TrendingUp size={18} className="text-blue-500" />
+          {title}
+        </h3>
+        <div className="flex flex-wrap items-center gap-3">
+          {!syncId && (
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setTimeFilter('week')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {t('week')}
+              </button>
+              <button
+                onClick={() => setTimeFilter('month')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {t('month')}
+              </button>
+            </div>
+          )}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setChartType('line')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'line' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <TrendingUp size={14} /> Line
+            </button>
+            <button
+              onClick={() => setChartType('bar')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <BarChart2 size={14} /> Bar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="h-72 flex items-center justify-center">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={syncId ? 250 : 350}>
+          {chartType === 'line' ? (
+            <AreaChart data={chartData} syncId={syncId} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+              <defs>
+                {dataKeys.map(dk => (
+                  <linearGradient key={dk.key} id={`color_${dk.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={dk.color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={dk.color} stopOpacity={0}/>
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis 
+                dataKey="time" 
+                tick={{ fontSize: 11, fill: '#64748b' }} 
+                minTickGap={24} 
+                axisLine={false}
+                tickLine={false}
+                dy={10}
+              />
+              <YAxis 
+                tick={{ fontSize: 11, fill: '#64748b' }} 
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelFormatter={(label) => `${t('time')}: ${label}`} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
+              {dataKeys.map(dk => (
+                <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
+              ))}
+              {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />}
+            </AreaChart>
+          ) : (
+            <BarChart data={chartData} syncId={syncId}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+              {dataKeys.map(dk => (
+                <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
+              ))}
+              {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />}
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      )}
+    </div>
+  )
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-6">
@@ -149,15 +250,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       </div>
 
       <div className="p-6 space-y-8">
-        {/* Metric Cards - Inspired by SmartAlert */}
+        {/* Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Rata-rata Arus (Total Konsumsi equivalent) */}
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Rata-rata Arus (RST)</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-600">
-                LATEST
-              </span>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-600">LATEST</span>
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
@@ -167,23 +265,19 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             </div>
           </div>
 
-          {/* Card 2: Arus Maksimal (Peak Demand equivalent) */}
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Arus Puncak (Max)</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-50 text-gray-600">
-                TODAY
-              </span>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-50 text-gray-600">TODAY</span>
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
-                {r ? (Math.max(phaseEmaAvg(r, 'R'), phaseEmaAvg(r, 'S'), phaseEmaAvg(r, 'T')) * 1000).toFixed(1) : '0'}
+                {(maxToday * 1000).toFixed(1)}
               </h3>
               <p className="text-sm text-gray-500 mb-1">mA</p>
             </div>
           </div>
 
-          {/* Card 3: Status Trafo (Efficiency Score equivalent) */}
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Status Operasional</p>
@@ -194,13 +288,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             </div>
           </div>
 
-          {/* Card 4: Tegangan Baterai (Occupancy equivalent) */}
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
-              <p className="text-sm font-medium text-gray-500">Tegangan Sistem</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-600">
-                OK
-              </span>
+              <p className="text-sm font-medium text-gray-500">Status Baterai</p>
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-600">OK</span>
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
@@ -211,7 +302,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           </div>
         </div>
 
-        {/* Analisis Detail (RST Per Fasa & Prediksi) */}
+        {/* Analisis Detail */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-3">
             <div className="flex items-center justify-between mb-4">
@@ -224,22 +315,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 const sensors = r ? phaseEma(r, phase) : [0,0,0]
                 const maxSensor = Math.max(...sensors) * 1000
                 return (
-                <div
-                  key={phase}
-                  onClick={() => setSelectedView(selectedView === phase ? 'average' : phase)}
-                  className={`rounded-xl p-5 border text-center cursor-pointer transition-all ${
-                    selectedView === phase 
-                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' 
-                      : 'bg-white border-gray-200 hover:border-blue-200 shadow-sm'
-                  }`}
-                >
-                  <p className={`text-sm font-bold mb-2 ${phaseColor[phase]}`}>
-                    FASA {phase}
-                  </p>
+                <div key={phase} className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm text-center">
+                  <p className={`text-sm font-bold mb-2 ${phaseColor[phase]}`}>FASA {phase}</p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {(avg * 1000).toFixed(1)}
-                    </p>
+                    <p className="text-2xl font-bold text-gray-900">{(avg * 1000).toFixed(1)}</p>
                     <span className="text-xs text-gray-500 font-medium">mA</span>
                   </div>
                   <div className="mt-3 text-left">
@@ -263,17 +342,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 <div className="p-2.5 bg-blue-50 rounded-lg">
                   <Zap size={20} className="text-blue-600" />
                 </div>
-                <span className="text-sm font-bold text-gray-900 leading-tight">
-                  Random Forest<br/>Analysis
-                </span>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Random Forest<br/>Analysis</span>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <p className="text-sm font-medium text-gray-800 mb-1">
-                  {device.latest_prediction?.rf_status || 'Normal'}
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  {device.latest_prediction?.action || 'Pola konsumsi energi normal, tidak terdeteksi anomali.'}
-                </p>
+                <p className="text-sm font-medium text-gray-800 mb-1">{device.latest_prediction?.rf_status || 'Normal'}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{device.latest_prediction?.action || 'Pola konsumsi energi normal, tidak terdeteksi anomali.'}</p>
               </div>
             </div>
           </div>
@@ -307,123 +380,32 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           </div>
 
           {activeTab === 'chart' && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                  <TrendingUp size={18} className="text-blue-500" />
-                  {t('leak_trend_ema')} ({selectedView === 'average' ? 'Average' : `${t('phase')} ${selectedView}`}) (mA)
-                </h3>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setTimeFilter('week')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      {t('week')}
-                    </button>
-                    <button
-                      onClick={() => setTimeFilter('month')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      {t('month')}
-                    </button>
-                  </div>
-                  <div className="flex bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setChartType('line')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'line' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      <TrendingUp size={14} /> Line
-                    </button>
-                    <button
-                      onClick={() => setChartType('bar')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${chartType === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      <BarChart2 size={14} /> Bar
-                    </button>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              {renderChart(`Tren Arus Bocor EMA (Average RST) (mA)`, [
+                {key: 'R', color: '#ef4444', name: 'Average R'},
+                {key: 'S', color: '#eab308', name: 'Average S'},
+                {key: 'T', color: '#3b82f6', name: 'Average T'}
+              ])}
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {renderChart(`Grafik Fasa R (mA)`, [
+                  {key: 'r1', color: '#ef4444', name: 'R1'},
+                  {key: 'r2', color: '#f87171', name: 'R2'},
+                  {key: 'r3', color: '#fca5a5', name: 'R3'}
+                ], 'syncGraph')}
+                
+                {renderChart(`Grafik Fasa S (mA)`, [
+                  {key: 's1', color: '#eab308', name: 'S1'},
+                  {key: 's2', color: '#fde047', name: 'S2'},
+                  {key: 's3', color: '#fef08a', name: 'S3'}
+                ], 'syncGraph')}
+                
+                {renderChart(`Grafik Fasa T (mA)`, [
+                  {key: 't1', color: '#3b82f6', name: 'T1'},
+                  {key: 't2', color: '#60a5fa', name: 'T2'},
+                  {key: 't3', color: '#93c5fd', name: 'T3'}
+                ], 'syncGraph')}
               </div>
-
-              {loading ? (
-                <div className="h-72 flex items-center justify-center">
-                  <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={350}>
-                  {chartType === 'line' ? (
-                    <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                      <defs>
-                        <linearGradient id="colorRModal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorSModal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorTModal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                      <XAxis 
-                        dataKey="time" 
-                        tick={{ fontSize: 11, fill: '#64748b' }} 
-                        minTickGap={24} 
-                        axisLine={false}
-                        tickLine={false}
-                        dy={10}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 11, fill: '#64748b' }} 
-                        axisLine={false}
-                        tickLine={false}
-                        label={{ value: t('current_ma'), angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: 12, fill: '#64748b' } }}
-                      />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelFormatter={(label) => `${t('time')}: ${label}`} />
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
-                      {selectedView === 'average' ? (
-                        <>
-                          <Area type="monotone" name="R" dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorRModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                          <Area type="monotone" name="S" dataKey="S" stroke="#eab308" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                          <Area type="monotone" name="T" dataKey="T" stroke="#3b82f6" fillOpacity={1} fill="url(#colorTModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                        </>
-                      ) : (
-                        <>
-                          <Area type="monotone" name={`${selectedView}1`} dataKey={`${selectedView}1`} stroke="#ef4444" fillOpacity={1} fill="url(#colorRModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                          <Area type="monotone" name={`${selectedView}2`} dataKey={`${selectedView}2`} stroke="#eab308" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                          <Area type="monotone" name={`${selectedView}3`} dataKey={`${selectedView}3`} stroke="#3b82f6" fillOpacity={1} fill="url(#colorTModal)" strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-                        </>
-                      )}
-                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />
-                    </AreaChart>
-                  ) : (
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                      {selectedView === 'average' ? (
-                        <>
-                          <Bar dataKey="R" fill="#ef4444" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="S" fill="#eab308" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="T" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                        </>
-                      ) : (
-                        <>
-                          <Bar dataKey={`${selectedView}1`} fill="#ef4444" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey={`${selectedView}2`} fill="#eab308" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey={`${selectedView}3`} fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                        </>
-                      )}
-                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />
-                    </BarChart>
-                  )}
-                </ResponsiveContainer>
-              )}
             </div>
           )}
 
@@ -442,38 +424,18 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('time')}</th>
-                      {selectedView === 'average' ? (
-                        <>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">R (mA)</th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">S (mA)</th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">T (mA)</th>
-                        </>
-                      ) : (
-                        <>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">{selectedView}1 (mA)</th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">{selectedView}2 (mA)</th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">{selectedView}3 (mA)</th>
-                        </>
-                      )}
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg R (mA)</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg S (mA)</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg T (mA)</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {chartData.map((d: any, idx: number) => (
                       <tr key={idx} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-3 text-gray-600 whitespace-nowrap">{d.date} {d.time}</td>
-                        {selectedView === 'average' ? (
-                          <>
-                            <td className="px-6 py-3 text-right font-medium text-red-600">{d.R}</td>
-                            <td className="px-6 py-3 text-right font-medium text-yellow-600">{d.S}</td>
-                            <td className="px-6 py-3 text-right font-medium text-blue-600">{d.T}</td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-6 py-3 text-right font-medium text-red-600">{d[`${selectedView}1`]}</td>
-                            <td className="px-6 py-3 text-right font-medium text-yellow-600">{d[`${selectedView}2`]}</td>
-                            <td className="px-6 py-3 text-right font-medium text-blue-600">{d[`${selectedView}3`]}</td>
-                          </>
-                        )}
+                        <td className="px-6 py-3 text-right font-medium text-red-600">{d.R}</td>
+                        <td className="px-6 py-3 text-right font-medium text-yellow-600">{d.S}</td>
+                        <td className="px-6 py-3 text-right font-medium text-blue-600">{d.T}</td>
                       </tr>
                     ))}
                     {chartData.length === 0 && !loading && (

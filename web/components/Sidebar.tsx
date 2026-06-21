@@ -3,22 +3,13 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu, BarChart2 } from 'lucide-react'
+import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu, BarChart2, Bell, FileText } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-const nav = (t: any) => [
-  {
-    section: t('monitoring'),
-    items: [
-      { href: '/', label: t('leak_current'), icon: Activity },
-      { href: '/prediction', label: 'Prediction Behavior', icon: BarChart2 },
-      { href: '/device-health', label: t('device_status'), icon: HardDrive },
-    ],
-  },
-]
-
 export function Sidebar() {
+  const [session, setSession] = useState<any>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -27,9 +18,23 @@ export function Sidebar() {
   const { t, language, setLanguage } = useLanguage()
 
   useEffect(() => {
-    supabase.from('devices').select('device_id').order('device_id').then(({ data }) => {
-      if (data) setDevices(data)
-    })
+    const fetchDevices = () => {
+      supabase.from('devices').select('device_id').order('device_id').then(({ data }) => {
+        if (data) setDevices(data)
+      })
+    }
+    fetchDevices()
+
+    const channel = supabase
+      .channel('sidebar-devices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'devices' }, () => {
+        fetchDevices()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [supabase])
 
   if (pathname === '/login') return null
@@ -38,6 +43,57 @@ export function Sidebar() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session)
+      if (session?.user?.id) {
+        const { data } = await supabase.from('user_roles').select('role').eq('id', session.user.id).single()
+        if (data?.role === 'super_admin') setIsSuperAdmin(true)
+      }
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session)
+      if (session?.user?.id) {
+        const { data } = await supabase.from('user_roles').select('role').eq('id', session.user.id).single()
+        if (data?.role === 'super_admin') setIsSuperAdmin(true)
+        else setIsSuperAdmin(false)
+      } else {
+        setIsSuperAdmin(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth, supabase])
+
+  const nav = (t: any) => {
+    const items = [
+      {
+        section: t('monitoring'),
+        items: [
+          { href: '/', label: t('leak_current'), icon: Activity },
+          { href: '/prediction', label: 'Prediction Behavior', icon: BarChart2 },
+          { href: '/alerts', label: 'Notifikasi', icon: Bell },
+          { href: '/reports', label: 'Laporan', icon: FileText },
+          { href: '/device-health', label: t('device_status'), icon: HardDrive },
+        ],
+      },
+    ]
+
+    if (isSuperAdmin) {
+      items.push({
+        section: 'Admin',
+        items: [
+          { href: '/admin', label: 'Manajemen Admin', icon: Zap }
+        ]
+      })
+    }
+
+    return items
   }
 
   return (
@@ -53,31 +109,34 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-        {nav(t).map((group) => (
+        {nav(t).map((group: any) => (
           <div key={group.section}>
             <p className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-gray-400">
               {group.section}
             </p>
             <div className="space-y-1">
-              {group.items.map((item) => {
+              {group.items.map((item: any) => {
                 const active = pathname === item.href
                 const Icon = item.icon
                 const isArusBocor = item.href === '/'
 
                 return (
                   <div key={item.href}>
-                    <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                    <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                         active && !isArusBocor
                           ? 'bg-blue-50 text-blue-700 font-medium'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
+                      onClick={() => {
+                        if (isArusBocor) setIsArusBocorOpen(!isArusBocorOpen)
+                      }}
                     >
-                      <Link href={item.href} className="flex items-center gap-3 flex-1">
+                      <Link href={item.href} className="flex items-center gap-3 flex-1" onClick={(e) => isArusBocor && e.stopPropagation()}>
                         <Icon size={17} className={active ? 'text-blue-600' : ''} />
                         <span className={active ? 'text-blue-600 font-medium' : ''}>{item.label}</span>
                       </Link>
                       {isArusBocor && devices.length > 0 && (
-                        <button onClick={() => setIsArusBocorOpen(!isArusBocorOpen)} className="p-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1">
                           {isArusBocorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                       )}
