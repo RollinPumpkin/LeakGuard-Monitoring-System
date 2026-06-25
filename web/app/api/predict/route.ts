@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const ML_API_URL = process.env.ML_API_URL || 'https://leakguard-api.railway.app'
+const ML_API_URL = process.env.ML_API_URL || 'https://leakguard-monitoring-system-production.up.railway.app'
 
 export async function POST(req: Request) {
   try {
