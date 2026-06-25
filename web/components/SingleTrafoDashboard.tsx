@@ -381,18 +381,44 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-800">Behavior Prediction</h3>
             </div>
-            <div className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 bg-blue-50 rounded-lg">
-                  <Zap size={20} className="text-blue-600" />
+            {(() => {
+              const status = device.latest_prediction?.rf_status || 'Normal'
+              const conf = device.latest_prediction?.confidence
+              const action = device.latest_prediction?.action || 'Pola konsumsi energi normal, tidak terdeteksi anomali.'
+              
+              const isCrit = status === 'Critical'
+              const isWarn = status === 'Warning'
+              
+              const mainBg = isCrit ? 'bg-red-50 border-red-200' : isWarn ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'
+              const iconBg = isCrit ? 'bg-red-100' : isWarn ? 'bg-yellow-100' : 'bg-green-50'
+              const iconColor = isCrit ? 'text-red-600' : isWarn ? 'text-yellow-600' : 'text-green-600'
+              const textColor = isCrit ? 'text-red-800' : isWarn ? 'text-yellow-800' : 'text-green-800'
+              const boxBg = isCrit ? 'bg-red-100/50 border-red-200' : isWarn ? 'bg-yellow-100/50 border-yellow-200' : 'bg-green-50 border-green-100'
+              const pulse = isCrit ? 'animate-pulse' : ''
+
+              return (
+                <div className={`rounded-xl p-5 border shadow-sm flex-1 flex flex-col justify-center transition-colors duration-500 ${mainBg} ${pulse}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-lg ${iconBg}`}>
+                        <Zap size={20} className={iconColor} />
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 leading-tight">Random Forest<br/>Analysis</span>
+                    </div>
+                    {conf && (
+                      <div className="text-right">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Confidence</span>
+                        <span className={`text-lg font-black ${iconColor}`}>{conf}%</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`rounded-lg p-3 border ${boxBg}`}>
+                    <p className={`text-sm font-bold mb-1 ${textColor}`}>{status}</p>
+                    <p className="text-xs text-gray-700 leading-relaxed font-medium">{action}</p>
+                  </div>
                 </div>
-                <span className="text-sm font-bold text-gray-900 leading-tight">Random Forest<br/>Analysis</span>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <p className="text-sm font-medium text-gray-800 mb-1">{device.latest_prediction?.rf_status || 'Normal'}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{device.latest_prediction?.action || 'Pola konsumsi energi normal, tidak terdeteksi anomali.'}</p>
-              </div>
-            </div>
+              )
+            })()}
           </div>
         </div>
 
