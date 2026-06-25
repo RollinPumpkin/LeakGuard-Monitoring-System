@@ -136,7 +136,11 @@ export function Sidebar() {
                       <Link 
                         href={item.href} 
                         className="flex items-center gap-3 flex-1 py-1"
-                        onClick={() => {
+                        onClick={(e) => {
+                          if (pathname === item.href && currentDevice) {
+                            e.preventDefault()
+                            window.location.href = item.href
+                          }
                           if (isArusBocor && !isArusBocorOpen) setIsArusBocorOpen(true)
                         }}
                       >
