@@ -41,6 +41,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(device.description || `Trafo ${device.device_id}`)
   const [isSavingName, setIsSavingName] = useState(false)
+  const [forecastData, setForecastData] = useState<any>(null)
 
   const { t, language } = useLanguage()
 
@@ -68,6 +69,40 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     })()
     return () => { active = false }
   }, [device.device_id, timeFilter])
+
+  // Fetch forecast data whenever readings change
+  useEffect(() => {
+    if (readings.length > 0) {
+      // Ambil histori (maksimal 10 jam terakhir)
+      const recentReadings = readings.slice(-10)
+      const historyR = recentReadings.map(rd => phaseEmaAvg(rd, 'R'))
+      const historyS = recentReadings.map(rd => phaseEmaAvg(rd, 'S'))
+      const historyT = recentReadings.map(rd => phaseEmaAvg(rd, 'T'))
+      
+      fetch('/api/forecast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history_r: historyR, history_s: historyS, history_t: historyT })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.result) {
+          const lastDate = parseISO(readings[readings.length-1].timestamp)
+          lastDate.setHours(lastDate.getHours() + 1) // +1 jam ke depan
+          
+          setForecastData({
+            time: format(lastDate, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Prediksi)',
+            date: format(lastDate, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
+            R_pred: data.result.R * 1000, // Konversi kembali ke mA
+            S_pred: data.result.S * 1000,
+            T_pred: data.result.T * 1000,
+            isForecast: true
+          })
+        }
+      })
+      .catch(err => console.error("Forecast Error:", err))
+    }
+  }, [readings, language])
 
   const handleDelete = async () => {
     const confirmationText = `DELETE TRAFO ${device.device_id}`
@@ -116,7 +151,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     maxToday = Math.max(phaseEmaAvg(r, 'R'), phaseEmaAvg(r, 'S'), phaseEmaAvg(r, 'T'))
   }
 
-  const chartData = readings.map((rd) => {
+  const baseChartData = readings.map((rd) => {
     const base = {
       time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }),
       date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
@@ -126,6 +161,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       R: Number(toMilliAmp((Number(rd.r1) + Number(rd.r2) + Number(rd.r3)) / 3).toFixed(2)),
       S: Number(toMilliAmp((Number(rd.s1) + Number(rd.s2) + Number(rd.s3)) / 3).toFixed(2)),
       T: Number(toMilliAmp((Number(rd.t1) + Number(rd.t2) + Number(rd.t3)) / 3).toFixed(2)),
+      R_pred: null,
+      S_pred: null,
+      T_pred: null,
       r1: Number(toMilliAmp(Number(rd.r1)).toFixed(2)),
       r2: Number(toMilliAmp(Number(rd.r2)).toFixed(2)),
       r3: Number(toMilliAmp(Number(rd.r3)).toFixed(2)),
@@ -137,6 +175,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       t3: Number(toMilliAmp(Number(rd.t3)).toFixed(2)),
     }
   })
+
+  // Tambahkan titik data prediksi di akhir chart
+  const chartData = forecastData ? [...baseChartData, forecastData] : baseChartData
 
   const handleExportCSV = () => {
     const headers = ['Tanggal', 'Waktu', 'Avg R', 'Avg S', 'Avg T', 'R1', 'R2', 'R3', 'S1', 'S2', 'S3', 'T1', 'T2', 'T3']
@@ -229,6 +270,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
               {dataKeys.map(dk => (
                 <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
+              ))}
+              {/* Tambahan garis putus-putus untuk prediksi */}
+              {dataKeys.map(dk => (
+                <Area key={`${dk.key}_pred`} type="monotone" name={`${dk.name} (1 Jam Kedepan)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4, fill: dk.color }} activeDot={{ r: 6 }} />
               ))}
               {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />}
             </AreaChart>
