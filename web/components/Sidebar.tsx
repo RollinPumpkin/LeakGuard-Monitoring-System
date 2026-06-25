@@ -130,16 +130,17 @@ export function Sidebar() {
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                       onClick={() => {
-                        if (isArusBocor) setIsArusBocorOpen(!isArusBocorOpen)
+                        router.push(item.href)
+                        if (isArusBocor && !isArusBocorOpen) setIsArusBocorOpen(true)
                       }}
                     >
                       {isParentActive && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-md shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
                       )}
-                      <Link href={item.href} className="flex items-center gap-3 flex-1" onClick={(e) => isArusBocor && e.stopPropagation()}>
+                      <div className="flex items-center gap-3 flex-1">
                         <Icon size={18} className={isParentActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600 transition-colors'} />
                         <span>{item.label}</span>
-                      </Link>
+                      </div>
                       {isArusBocor && devices.length > 0 && (
                         <button onClick={(e) => { e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
                           {isArusBocorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}

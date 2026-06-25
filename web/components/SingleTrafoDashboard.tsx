@@ -266,14 +266,14 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelFormatter={(label) => `${t('time')}: ${label}`} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelFormatter={(label) => `${t('time')}: ${label}`} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
               {dataKeys.map(dk => (
                 <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
               ))}
               {/* Tambahan garis putus-putus untuk prediksi */}
               {dataKeys.map(dk => (
-                <Area key={`${dk.key}_pred`} type="monotone" name={`${dk.name} (1 Jam Kedepan)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4, fill: dk.color }} activeDot={{ r: 6 }} />
+                <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4, fill: dk.color }} activeDot={{ r: 6 }} />
               ))}
               {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />}
             </AreaChart>
