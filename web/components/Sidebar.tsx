@@ -124,25 +124,27 @@ export function Sidebar() {
 
                 return (
                   <div key={item.href}>
-                    <div className={`relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer overflow-hidden group ${
+                    <div className={`relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-200 overflow-hidden group ${
                         isParentActive
                           ? 'bg-blue-50 text-blue-700 font-semibold'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
-                      onClick={() => {
-                        router.push(item.href)
-                        if (isArusBocor && !isArusBocorOpen) setIsArusBocorOpen(true)
-                      }}
                     >
                       {isParentActive && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-md shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
                       )}
-                      <div className="flex items-center gap-3 flex-1">
+                      <Link 
+                        href={item.href} 
+                        className="flex items-center gap-3 flex-1 py-1"
+                        onClick={() => {
+                          if (isArusBocor && !isArusBocorOpen) setIsArusBocorOpen(true)
+                        }}
+                      >
                         <Icon size={18} className={isParentActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600 transition-colors'} />
                         <span>{item.label}</span>
-                      </div>
+                      </Link>
                       {isArusBocor && devices.length > 0 && (
-                        <button onClick={(e) => { e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
                           {isArusBocorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                       )}
