@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -24,7 +25,9 @@ export default function RootLayout({
           <ThresholdProvider>
             <div className="flex min-h-screen bg-gray-50">
               <div className="hidden md:flex sticky top-0 h-screen">
-                <Sidebar />
+                <Suspense fallback={<div className="w-60 bg-white border-r h-screen" />}>
+                  <Sidebar />
+                </Suspense>
               </div>
               <div className="flex-1 min-w-0">{children}</div>
             </div>
