@@ -47,11 +47,15 @@ export function DashboardOverview({ devices, metrics }: Props) {
             <p className="text-sm text-gray-500">Belum ada trafo. Tambahkan trafo untuk mulai monitoring.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {devices.map((device) => {
               const r = device.latest_reading
               const status = computeAlarmStatus(r, thresholds)
-              const avgRST = r ? ((phaseEmaAvg(r, 'R') + phaseEmaAvg(r, 'S') + phaseEmaAvg(r, 'T')) / 3 * 1000).toFixed(1) : '0'
+              
+              const avgR = r ? (phaseEmaAvg(r, 'R') * 1000).toFixed(1) : '0.0'
+              const avgS = r ? (phaseEmaAvg(r, 'S') * 1000).toFixed(1) : '0.0'
+              const avgT = r ? (phaseEmaAvg(r, 'T') * 1000).toFixed(1) : '0.0'
+              
               const name = device.description || `Trafo ${device.device_id}`
               
               let lastUpdateStr = 'Belum ada data'
@@ -61,28 +65,84 @@ export function DashboardOverview({ devices, metrics }: Props) {
 
               return (
                 <Link key={device.device_id} href={`/?device=${device.device_id}`}>
-                  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                          {name}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                          <Clock size={12} /> {lastUpdateStr}
-                        </p>
-                      </div>
-                      <StatusBadge status={status} size="sm" />
-                    </div>
+                  <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group flex flex-col h-full">
                     
-                    <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Avg Arus (RST)</p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-bold text-gray-900">{avgRST}</span>
-                          <span className="text-xs font-medium text-gray-500">mA</span>
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-blue-600 text-white p-3.5 rounded-xl shadow-sm group-hover:scale-105 transition-transform">
+                          <Zap size={22} fill="currentColor" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-gray-900 tracking-wide uppercase">TRAFO-{device.device_id}</h3>
+                          <p className="text-sm text-gray-500 font-medium">{name}</p>
                         </div>
                       </div>
-                      <div className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <StatusBadge status={status} size="md" />
+                    </div>
+
+                    {/* EMA R / S / T Section */}
+                    <div className="mb-2">
+                      <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">EMA R / S / T</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Fasa R */}
+                        <div className="bg-red-50/50 border border-red-100 rounded-xl p-3">
+                          <h4 className="text-sm font-bold text-red-600 mb-2">Fasa R</h4>
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R1</span><span className="font-semibold text-gray-700">{r?.r1?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R2</span><span className="font-semibold text-gray-700">{r?.r2?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R3</span><span className="font-semibold text-gray-700">{r?.r3?.toFixed(1) || '0.0'} mA</span></div>
+                          </div>
+                        </div>
+                        {/* Fasa S */}
+                        <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-3">
+                          <h4 className="text-sm font-bold text-yellow-600 mb-2">Fasa S</h4>
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S1</span><span className="font-semibold text-gray-700">{r?.s1?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S2</span><span className="font-semibold text-gray-700">{r?.s2?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S3</span><span className="font-semibold text-gray-700">{r?.s3?.toFixed(1) || '0.0'} mA</span></div>
+                          </div>
+                        </div>
+                        {/* Fasa T */}
+                        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3">
+                          <h4 className="text-sm font-bold text-blue-600 mb-2">Fasa T</h4>
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T1</span><span className="font-semibold text-gray-700">{r?.t1?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T2</span><span className="font-semibold text-gray-700">{r?.t2?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T3</span><span className="font-semibold text-gray-700">{r?.t3?.toFixed(1) || '0.0'} mA</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AVERAGE EMA Section */}
+                    <div className="mb-6 mt-4">
+                      <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">Average EMA</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white border border-gray-100 shadow-sm rounded-xl py-3 flex flex-col items-center justify-center">
+                          <span className="text-sm font-bold text-red-600 mb-0.5">R</span>
+                          <span className="text-base font-black text-gray-800">{avgR} <span className="text-xs font-semibold text-gray-500">mA</span></span>
+                        </div>
+                        <div className="bg-white border border-gray-100 shadow-sm rounded-xl py-3 flex flex-col items-center justify-center">
+                          <span className="text-sm font-bold text-yellow-600 mb-0.5">S</span>
+                          <span className="text-base font-black text-gray-800">{avgS} <span className="text-xs font-semibold text-gray-500">mA</span></span>
+                        </div>
+                        <div className="bg-white border border-gray-100 shadow-sm rounded-xl py-3 flex flex-col items-center justify-center">
+                          <span className="text-sm font-bold text-blue-600 mb-0.5">T</span>
+                          <span className="text-base font-black text-gray-800">{avgT} <span className="text-xs font-semibold text-gray-500">mA</span></span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Footer */}
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                      <div className="text-sm flex items-center gap-2">
+                        <span className="text-gray-500">Prediksi: </span>
+                        <span className={`font-semibold ${device.latest_prediction?.rf_status === 'Critical' ? 'text-red-600' : device.latest_prediction?.rf_status === 'Warning' ? 'text-yellow-600' : 'text-blue-600'}`}>
+                          {device.latest_prediction?.rf_status || 'Model dalam perbaikan'}
+                        </span>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors flex-shrink-0">
                         <ChevronRight size={16} />
                       </div>
                     </div>
