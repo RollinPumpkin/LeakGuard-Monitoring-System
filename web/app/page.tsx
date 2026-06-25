@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { DeviceWithLatest } from '@/types'
 import { MetricCard } from '@/components/MetricCard'
 import { SingleTrafoDashboard } from '@/components/SingleTrafoDashboard'
+import { DashboardOverview } from '@/components/DashboardOverview'
 import { AddTrafoModal } from '@/components/AddTrafoModal'
 import { SettingsModal } from '@/components/SettingsModal'
 import { useThresholds } from '@/components/ThresholdProvider'
@@ -64,10 +65,10 @@ function DashboardContent() {
         if (found) {
           setSelected(found)
         } else {
-          setSelected(devices[0])
+          setSelected(null)
         }
       } else {
-        setSelected(devices[0])
+        setSelected(null)
       }
     } else {
       setSelected(null)
@@ -157,23 +158,12 @@ function DashboardContent() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <MetricCard title={t('total_trafo')} value={metrics.total} icon={<Zap size={18} />} color="blue" />
-          <MetricCard title={t('normal')} value={metrics.normal} icon={<CheckCircle size={18} />} color="green" />
-          <MetricCard title={t('warning')} value={metrics.warning} icon={<AlertTriangle size={18} />} color="yellow" />
-          <MetricCard title={t('critical')} value={metrics.critical} icon={<XCircle size={18} />} color="red" />
-        </div>
-
         {loading ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="flex justify-center">
               <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
             </div>
             <p className="text-sm text-gray-500 mt-4">Memuat data trafo...</p>
-          </div>
-        ) : devices.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <p className="text-sm text-gray-500">Belum ada trafo. Tambahkan trafo untuk mulai monitoring.</p>
           </div>
         ) : selected ? (
           <SingleTrafoDashboard 
@@ -186,7 +176,9 @@ function DashboardContent() {
               refresh(true)
             }} 
           />
-        ) : null}
+        ) : (
+          <DashboardOverview devices={devices} metrics={metrics} />
+        )}
       </main>
 
       {showAdd && (

@@ -14,12 +14,12 @@ import {
   toMilliAmp,
   computeAlarmStatus,
 } from '@/lib/leak'
-import { deleteDevice } from '@/lib/data'
+import { deleteDevice, updateDeviceName } from '@/lib/data'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Brush
 } from 'recharts'
-import { TrendingUp, Zap, Table as TableIcon, Download, BarChart2, Trash2 } from 'lucide-react'
+import { TrendingUp, Zap, Table as TableIcon, Download, BarChart2, Trash2, Edit2, Check, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -37,6 +37,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line')
   const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week')
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editName, setEditName] = useState(device.description || `Trafo ${device.device_id}`)
+  const [isSavingName, setIsSavingName] = useState(false)
+
   const { t, language } = useLanguage()
 
   useEffect(() => {
@@ -65,7 +70,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   }, [device.device_id, timeFilter])
 
   const handleDelete = async () => {
-    if (!window.confirm(t('confirm_delete'))) return
+    const confirmationText = `DELETE TRAFO ${device.device_id}`
+    const confirmation = prompt(`Ketik "${confirmationText}" untuk mengonfirmasi penghapusan:`)
+    if (confirmation !== confirmationText) {
+      alert('Penghapusan dibatalkan: teks tidak cocok.')
+      return
+    }
     
     setIsDeleting(true)
     const { error } = await deleteDevice(device.device_id)
@@ -75,6 +85,19 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     } else {
       alert(error)
       setIsDeleting(false)
+    }
+  }
+
+  const handleSaveName = async () => {
+    setIsSavingName(true)
+    const { error } = await updateDeviceName(device.device_id, editName)
+    setIsSavingName(false)
+    if (!error) {
+      setIsEditingName(false)
+      // Call refresh to update parent if necessary, but we can also just rely on state
+      device.description = editName
+    } else {
+      alert(error)
     }
   }
 
@@ -232,11 +255,32 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
-            {t('detail_trafo')} {device.device_id}
-          </h2>
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="text-xl font-semibold text-gray-900 border border-blue-300 rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <button onClick={handleSaveName} disabled={isSavingName} className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors">
+                <Check size={18} />
+              </button>
+              <button onClick={() => { setIsEditingName(false); setEditName(device.description || `Trafo ${device.device_id}`); }} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+          ) : (
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-3">
+              {device.description || `Trafo ${device.device_id}`}
+              <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                <Edit2 size={16} />
+              </button>
+            </h2>
+          )}
           <p className="text-sm text-gray-500 mt-0.5">
-            {t('detail_desc')}
+            {t('detail_desc')} (ID: {device.device_id})
           </p>
         </div>
         <button

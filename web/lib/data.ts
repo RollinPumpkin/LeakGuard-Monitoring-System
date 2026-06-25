@@ -60,3 +60,12 @@ export async function deleteDevice(device_id: string): Promise<{ error: string |
   
   return { error: error?.message ?? null }
 }
+
+export async function updateDeviceName(device_id: string, description: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('devices')
+    .update({ description })
+    .eq('device_id', device_id)
+  
+  return { error: error?.message ?? null }
+}

@@ -19,7 +19,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const fetchDevices = () => {
-      supabase.from('devices').select('device_id').order('device_id').then(({ data }) => {
+      supabase.from('devices').select('device_id, description').order('device_id').then(({ data }) => {
         if (data) setDevices(data)
       })
     }
@@ -75,7 +75,7 @@ export function Sidebar() {
       {
         section: t('monitoring'),
         items: [
-          { href: '/', label: t('leak_current'), icon: Activity },
+          { href: '/', label: 'Dashboard', icon: Activity },
           { href: '/prediction', label: 'Prediction Behavior', icon: BarChart2 },
           { href: '/alerts', label: 'Notifikasi', icon: Bell },
           { href: '/reports', label: 'Laporan', icon: FileText },
@@ -151,7 +151,7 @@ export function Sidebar() {
                             href={`/?device=${d.device_id}`}
                             className="block px-3 py-1.5 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                           >
-                            Trafo {d.device_id}
+                            {d.description || `Trafo ${d.device_id}`}
                           </Link>
                         ))}
                       </div>
