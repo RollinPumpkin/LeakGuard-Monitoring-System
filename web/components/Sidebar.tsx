@@ -19,7 +19,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const fetchDevices = () => {
-      supabase.from('devices').select('device_id, description').order('device_id').then(({ data }) => {
+      supabase.from('devices').select('device_id, description').eq('is_active', true).order('device_id').then(({ data }) => {
         if (data) setDevices(data)
       })
     }
