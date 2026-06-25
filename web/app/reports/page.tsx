@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { SensorReading } from '@/types'
 import { useThresholds } from '@/components/ThresholdProvider'
 import { computeAlarmStatus, phaseEmaAvg } from '@/lib/leak'
-import { FileText, Download, Calendar, Activity } from 'lucide-react'
+import { FileText, Download, Calendar, Activity, Eye } from 'lucide-react'
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -17,6 +17,7 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState<'week' | 'month'>('week')
   const [selectedDevice, setSelectedDevice] = useState<string>('all')
   const [devices, setDevices] = useState<string[]>([])
+  const [previewData, setPreviewData] = useState<SensorReading[] | null>(null)
   
   const { thresholds } = useThresholds()
   const { t, language } = useLanguage()
@@ -88,7 +89,7 @@ export default function ReportsPage() {
       ]
     })
 
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+    const csvContent = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -201,6 +202,21 @@ export default function ReportsPage() {
 
         <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row gap-4">
           <button
+            onClick={async () => {
+              const report = await generateReportData()
+              if (report && report.data.length > 0) {
+                setPreviewData(report.data)
+              } else {
+                setPreviewData([])
+              }
+            }}
+            disabled={loading}
+            className="flex-1 flex justify-center items-center gap-2 px-4 py-3 text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loading ? <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" /> : <><Eye size={18} /> Tampilkan Preview</>}
+          </button>
+
+          <button
             onClick={handleExportPDF}
             disabled={loading}
             className="flex-1 flex justify-center items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-50"
@@ -217,6 +233,52 @@ export default function ReportsPage() {
           </button>
         </div>
       </div>
+
+      {previewData && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 mt-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Preview Data ({previewData.length} baris)</h2>
+          {previewData.length === 0 ? (
+            <p className="text-sm text-gray-500">Tidak ada data untuk periode ini.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-500">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3">Waktu</th>
+                    <th className="px-4 py-3">Perangkat</th>
+                    <th className="px-4 py-3">Avg R / S / T (mA)</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewData.slice(0, 50).map((d) => (
+                    <tr key={d.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">{format(parseISO(d.timestamp), 'dd MMM yyyy HH:mm', { locale })}</td>
+                      <td className="px-4 py-3">{d.device_id}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {(phaseEmaAvg(d, 'R') * 1000).toFixed(1)} <span className="text-gray-400 font-normal">/</span> {(phaseEmaAvg(d, 'S') * 1000).toFixed(1)} <span className="text-gray-400 font-normal">/</span> {(phaseEmaAvg(d, 'T') * 1000).toFixed(1)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          computeAlarmStatus(d, thresholds) === 'Normal' ? 'bg-green-100 text-green-700' :
+                          computeAlarmStatus(d, thresholds) === 'Warning' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {computeAlarmStatus(d, thresholds)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {previewData.length > 50 && (
+                <div className="text-center mt-4 text-xs text-gray-500 italic">
+                  Menampilkan 50 baris pertama dari total {previewData.length} baris.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

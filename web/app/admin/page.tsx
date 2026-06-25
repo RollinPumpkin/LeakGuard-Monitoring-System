@@ -97,38 +97,38 @@ export default function AdminPage() {
             Tambah User Baru
           </h2>
 
-          <form onSubmit={handleAddUser} className="space-y-4">
+          <form onSubmit={handleAddUser} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2.5 border bg-gray-50 text-gray-900 placeholder-gray-400"
                 placeholder="admin@example.com"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">Password</label>
               <input
                 type="password"
                 required
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2.5 border bg-gray-50 text-gray-900 placeholder-gray-400"
                 placeholder="Minimal 6 karakter"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">Role</label>
               <select
                 value={role}
                 onChange={(e: any) => setRole(e.target.value)}
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2.5 border bg-gray-50 text-gray-900 font-medium"
               >
                 <option value="admin">Admin</option>
                 <option value="viewer">Viewer</option>
@@ -142,22 +142,22 @@ export default function AdminPage() {
             >
               {loading ? 'Memproses...' : 'Tambahkan User'}
             </button>
-            <p className="text-xs text-gray-500 text-center mt-2">
+            <p className="text-xs text-gray-500 text-center mt-3">
               Pastikan Anda telah menambahkan <code>SUPABASE_SERVICE_ROLE_KEY</code> di Vercel/.env.local agar fitur ini berfungsi.
             </p>
           </form>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 flex flex-col justify-center text-center">
-          <Users size={48} className="mx-auto text-indigo-400 mb-4" />
-          <h3 className="text-lg font-bold text-gray-800 mb-2">Panduan Super Admin</h3>
-          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-200 p-8 flex flex-col justify-center text-center shadow-sm">
+          <Users size={56} className="mx-auto text-indigo-500 mb-5" />
+          <h3 className="text-xl font-black text-indigo-950 mb-3">Panduan Super Admin</h3>
+          <p className="text-sm text-gray-800 mb-6 leading-relaxed font-medium">
             Sebagai Super Admin, Anda dapat menambahkan akun baru yang akan langsung dapat digunakan untuk login ke dashboard ini.
           </p>
-          <div className="text-left bg-white p-4 rounded-lg text-xs text-gray-600 shadow-sm">
-            <ul className="list-disc pl-4 space-y-2">
-              <li><strong>Admin:</strong> Memiliki akses untuk mengelola alat, menghapus alat, dan melihat data.</li>
-              <li><strong>Viewer:</strong> Hanya dapat melihat data, tidak dapat menghapus atau mengkonfigurasi.</li>
+          <div className="text-left bg-white p-5 rounded-xl text-sm text-gray-800 shadow-sm border border-indigo-100">
+            <ul className="list-disc pl-5 space-y-3">
+              <li><strong className="text-indigo-900">Admin:</strong> Memiliki akses untuk mengelola alat, menghapus alat, dan melihat data.</li>
+              <li><strong className="text-indigo-900">Viewer:</strong> Hanya dapat melihat data, tidak dapat menghapus atau mengkonfigurasi.</li>
             </ul>
           </div>
         </div>

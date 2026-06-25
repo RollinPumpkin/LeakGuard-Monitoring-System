@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Zap, Activity, HardDrive, LogOut, ChevronDown, ChevronRight, Menu, BarChart2, Bell, FileText } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -11,6 +11,8 @@ export function Sidebar() {
   const [session, setSession] = useState<any>(null)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentDevice = searchParams.get('device')
   const router = useRouter()
   const supabase = createClient()
   const [devices, setDevices] = useState<any[]>([])
@@ -118,24 +120,28 @@ export function Sidebar() {
                 const active = pathname === item.href
                 const Icon = item.icon
                 const isArusBocor = item.href === '/'
+                const isParentActive = active && (!isArusBocor || (isArusBocor && !currentDevice))
 
                 return (
                   <div key={item.href}>
-                    <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-                        active && !isArusBocor
-                          ? 'bg-blue-50 text-blue-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-50'
+                    <div className={`relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer overflow-hidden group ${
+                        isParentActive
+                          ? 'bg-blue-50 text-blue-700 font-semibold'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                       onClick={() => {
                         if (isArusBocor) setIsArusBocorOpen(!isArusBocorOpen)
                       }}
                     >
+                      {isParentActive && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-md shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
+                      )}
                       <Link href={item.href} className="flex items-center gap-3 flex-1" onClick={(e) => isArusBocor && e.stopPropagation()}>
-                        <Icon size={17} className={active ? 'text-blue-600' : ''} />
-                        <span className={active ? 'text-blue-600 font-medium' : ''}>{item.label}</span>
+                        <Icon size={18} className={isParentActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600 transition-colors'} />
+                        <span>{item.label}</span>
                       </Link>
                       {isArusBocor && devices.length > 0 && (
-                        <button onClick={(e) => { e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsArusBocorOpen(!isArusBocorOpen); }} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
                           {isArusBocorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                       )}
@@ -143,16 +149,26 @@ export function Sidebar() {
                     
                     {/* Submenu untuk Trafo */}
                     {isArusBocor && isArusBocorOpen && devices.length > 0 && (
-                      <div className="mt-1 ml-9 space-y-1">
-                        {devices.map(d => (
-                          <Link
-                            key={d.device_id}
-                            href={`/?device=${d.device_id}`}
-                            className="block px-3 py-1.5 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                          >
-                            {d.description || `Trafo ${d.device_id}`}
-                          </Link>
-                        ))}
+                      <div className="mt-1.5 ml-9 space-y-1">
+                        {devices.map(d => {
+                          const isChildActive = currentDevice === d.device_id
+                          return (
+                            <Link
+                              key={d.device_id}
+                              href={`/?device=${d.device_id}`}
+                              className={`block px-3 py-2 text-xs rounded-md transition-all relative overflow-hidden ${
+                                isChildActive 
+                                  ? 'text-blue-700 bg-blue-50/50 font-medium' 
+                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                              }`}
+                            >
+                              {isChildActive && (
+                                <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-blue-400 rounded-r-sm shadow-[0_0_6px_rgba(96,165,250,0.6)]" />
+                              )}
+                              {d.description || `Trafo ${d.device_id}`}
+                            </Link>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
