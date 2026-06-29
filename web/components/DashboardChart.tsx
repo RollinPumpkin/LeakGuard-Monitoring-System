@@ -4,8 +4,8 @@ import React, { useEffect, useState } from 'react'
 import { DeviceWithLatest, SensorReading } from '@/types'
 import { supabase } from '@/lib/supabase'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Brush
+  AreaChart, Area, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, ComposedChart
 } from 'recharts'
 import { TrendingUp, Activity } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -64,6 +64,9 @@ export function DashboardChart({ devices }: Props) {
     R: Number(toMilliAmp(phaseEmaAvg(rd, 'R')).toFixed(2)),
     S: Number(toMilliAmp(phaseEmaAvg(rd, 'S')).toFixed(2)),
     T: Number(toMilliAmp(phaseEmaAvg(rd, 'T')).toFixed(2)),
+    pred_R: rd.pred_R || null,
+    pred_S: rd.pred_S || null,
+    pred_T: rd.pred_T || null,
   }))
 
   return (
@@ -114,7 +117,7 @@ export function DashboardChart({ devices }: Props) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
             <defs>
               <linearGradient id="colorR" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
@@ -153,8 +156,11 @@ export function DashboardChart({ devices }: Props) {
             <Area type="monotone" name={t('average_r')} dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorR)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_s')} dataKey="S" stroke="#eab308" fillOpacity={1} fill="url(#colorS)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_t')} dataKey="T" stroke="#3b82f6" fillOpacity={1} fill="url(#colorT)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={290} fill="#f8fafc" />
-          </AreaChart>
+            {/* Garis Riwayat Prediksi H-1 */}
+            <Line type="monotone" name="Prediksi R (H-1)" dataKey="pred_R" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+            <Line type="monotone" name="Prediksi S (H-1)" dataKey="pred_S" stroke="#eab308" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+            <Line type="monotone" name="Prediksi T (H-1)" dataKey="pred_T" stroke="#3b82f6" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+          </ComposedChart>
         </ResponsiveContainer>
       )}
     </div>
