@@ -43,6 +43,11 @@ export interface SensorReading {
 
   alarm_status: AlarmStatus
   created_at: string
+  
+  // Fitur prediksi masa depan (Optional)
+  pred_R?: number | null
+  pred_S?: number | null
+  pred_T?: number | null
 }
 
 export interface Prediction {
