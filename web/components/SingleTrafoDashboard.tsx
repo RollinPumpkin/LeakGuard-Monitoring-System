@@ -82,27 +82,28 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       fetch('/api/forecast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ history_r: historyR, history_s: historyS, history_t: historyT })
+        body: JSON.stringify({ device_id: device.device_id, history_r: historyR, history_s: historyS, history_t: historyT })
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.result) {
-          const lastDate = parseISO(readings[readings.length-1].timestamp)
-          lastDate.setHours(lastDate.getHours() + 1) // +1 jam ke depan
-          
-          setForecastData({
-            time: format(lastDate, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Prediksi)',
-            date: format(lastDate, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-            R_pred: data.result.R * 1000, // Konversi kembali ke mA
-            S_pred: data.result.S * 1000,
-            T_pred: data.result.T * 1000,
-            isForecast: true
+        if (data.success && Array.isArray(data.result)) {
+          const formattedForecast = data.result.map((item: any) => {
+            const dt = parseISO(item.target_timestamp)
+            return {
+              time: format(dt, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Pred)',
+              date: format(dt, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
+              R_pred: item.pred_r * 1000, // Konversi kembali ke mA
+              S_pred: item.pred_s * 1000,
+              T_pred: item.pred_t * 1000,
+              isForecast: true
+            }
           })
+          setForecastData(formattedForecast)
         }
       })
       .catch(err => console.error("Forecast Error:", err))
     }
-  }, [readings, language])
+  }, [readings, language, device.device_id])
 
   const handleDelete = async () => {
     const confirmationText = `DELETE TRAFO ${device.device_id}`
@@ -177,7 +178,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   })
 
   // Tambahkan titik data prediksi di akhir chart
-  const chartData = forecastData ? [...baseChartData, forecastData] : baseChartData
+  const chartData = forecastData ? [...baseChartData, ...forecastData] : baseChartData
 
   const handleExportCSV = () => {
     const headers = ['Tanggal', 'Waktu', 'Avg R', 'Avg S', 'Avg T', 'R1', 'R2', 'R3', 'S1', 'S2', 'S3', 'T1', 'T2', 'T3']
