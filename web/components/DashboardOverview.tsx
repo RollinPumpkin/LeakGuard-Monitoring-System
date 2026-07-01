@@ -89,27 +89,27 @@ export function DashboardOverview({ devices, metrics }: Props) {
                         <div className="bg-red-50/50 border border-red-100 rounded-xl p-3">
                           <h4 className="text-sm font-bold text-red-600 mb-2">Fasa R</h4>
                           <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R1</span><span className="font-semibold text-gray-700">{r?.r1?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R2</span><span className="font-semibold text-gray-700">{r?.r2?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R3</span><span className="font-semibold text-gray-700">{r?.r3?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R1</span><span className="font-semibold text-gray-700">{((r?.r1 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R2</span><span className="font-semibold text-gray-700">{((r?.r2 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">R3</span><span className="font-semibold text-gray-700">{((r?.r3 || 0) * 1000).toFixed(1)} mA</span></div>
                           </div>
                         </div>
                         {/* Fasa S */}
                         <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-3">
                           <h4 className="text-sm font-bold text-yellow-600 mb-2">Fasa S</h4>
                           <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S1</span><span className="font-semibold text-gray-700">{r?.s1?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S2</span><span className="font-semibold text-gray-700">{r?.s2?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S3</span><span className="font-semibold text-gray-700">{r?.s3?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S1</span><span className="font-semibold text-gray-700">{((r?.s1 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S2</span><span className="font-semibold text-gray-700">{((r?.s2 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">S3</span><span className="font-semibold text-gray-700">{((r?.s3 || 0) * 1000).toFixed(1)} mA</span></div>
                           </div>
                         </div>
                         {/* Fasa T */}
                         <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3">
                           <h4 className="text-sm font-bold text-blue-600 mb-2">Fasa T</h4>
                           <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T1</span><span className="font-semibold text-gray-700">{r?.t1?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T2</span><span className="font-semibold text-gray-700">{r?.t2?.toFixed(1) || '0.0'} mA</span></div>
-                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T3</span><span className="font-semibold text-gray-700">{r?.t3?.toFixed(1) || '0.0'} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T1</span><span className="font-semibold text-gray-700">{((r?.t1 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T2</span><span className="font-semibold text-gray-700">{((r?.t2 || 0) * 1000).toFixed(1)} mA</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400 font-medium">T3</span><span className="font-semibold text-gray-700">{((r?.t3 || 0) * 1000).toFixed(1)} mA</span></div>
                           </div>
                         </div>
                       </div>

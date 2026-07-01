@@ -3,18 +3,18 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Hitung tanggal 1 bulan yang lalu
+    // Hitung tanggal 2 bulan yang lalu
     const oneMonthAgo = new Date()
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 2)
     const cutoffDate = oneMonthAgo.toISOString()
 
-    // Hapus data sensor_readings yang lebih lama dari 1 bulan
+    // Hapus data sensor_readings yang lebih lama dari 2 bulan
     const { error: readingsError } = await supabase
       .from('sensor_readings')
       .delete()
       .lt('timestamp', cutoffDate)
 
-    // Hapus data predictions yang lebih lama dari 1 bulan
+    // Hapus data predictions yang lebih lama dari 2 bulan
     const { error: predsError } = await supabase
       .from('predictions')
       .delete()

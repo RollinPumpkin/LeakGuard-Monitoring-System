@@ -14,7 +14,12 @@ import autoTable from 'jspdf-autotable'
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false)
-  const [period, setPeriod] = useState<'week' | 'month'>('week')
+  const [startDate, setStartDate] = useState<string>(
+    format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  )
+  const [endDate, setEndDate] = useState<string>(
+    format(new Date(), 'yyyy-MM-dd')
+  )
   const [selectedDevice, setSelectedDevice] = useState<string>('all')
   const [devices, setDevices] = useState<string[]>([])
   const [previewData, setPreviewData] = useState<SensorReading[] | null>(null)
@@ -33,21 +38,16 @@ export default function ReportsPage() {
   const generateReportData = async () => {
     setLoading(true)
     const now = new Date()
-    let startDate: Date, endDate: Date
-
-    if (period === 'week') {
-      startDate = startOfWeek(now, { weekStartsOn: 1 })
-      endDate = endOfWeek(now, { weekStartsOn: 1 })
-    } else {
-      startDate = startOfMonth(now)
-      endDate = endOfMonth(now)
-    }
+    const start = parseISO(startDate)
+    const end = parseISO(endDate)
+    // Supaya endDate mencakup sampai akhir hari (23:59:59)
+    end.setHours(23, 59, 59, 999)
 
     let query = supabase
       .from('sensor_readings')
       .select('*')
-      .gte('timestamp', startDate.toISOString())
-      .lte('timestamp', endDate.toISOString())
+      .gte('timestamp', start.toISOString())
+      .lte('timestamp', end.toISOString())
       .order('timestamp', { ascending: true })
 
     if (selectedDevice !== 'all') {
@@ -62,7 +62,7 @@ export default function ReportsPage() {
       return null
     }
 
-    return { data: data as SensorReading[], startDate, endDate }
+    return { data: data as SensorReading[], startDate: start, endDate: end }
   }
 
   const handleExportCSV = async () => {
@@ -94,7 +94,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `Laporan-Arus-Bocor-${period}-${format(new Date(), 'yyyyMMdd')}.csv`)
+    link.setAttribute('download', `Laporan-Arus-Bocor-${format(new Date(), 'yyyyMMdd')}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -144,7 +144,7 @@ export default function ReportsPage() {
       headStyles: { fillColor: [37, 99, 235] }
     })
 
-    doc.save(`Laporan-Arus-Bocor-${period}-${format(new Date(), 'yyyyMMdd')}.pdf`)
+    doc.save(`Laporan-Arus-Bocor-${format(new Date(), 'yyyyMMdd')}.pdf`)
   }
 
   return (
@@ -167,19 +167,20 @@ export default function ReportsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               <Calendar size={16} /> Periode Waktu
             </label>
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setPeriod('week')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${period === 'week' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                Minggu Ini
-              </button>
-              <button
-                onClick={() => setPeriod('month')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${period === 'month' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                Bulan Ini
-              </button>
+            <div className="flex bg-gray-100 rounded-lg p-1 gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 py-1.5 px-2 text-sm font-medium rounded-md text-gray-900 border-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+              <span className="text-gray-400 flex items-center">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex-1 py-1.5 px-2 text-sm font-medium rounded-md text-gray-900 border-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
             </div>
           </div>
 

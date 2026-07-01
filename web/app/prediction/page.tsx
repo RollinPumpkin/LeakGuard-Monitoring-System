@@ -124,7 +124,7 @@ export default function PredictionPage() {
                       <div>
                         <p className="text-[10px] text-gray-400 font-semibold uppercase mb-1">Confidence Score</p>
                         <p className="text-sm font-bold text-gray-900">
-                          {pred?.confidence ? `${(pred.confidence * 100).toFixed(1)}%` : '—'}
+                          {pred?.confidence ? `${(pred.confidence).toFixed(1)}%` : '—'}
                         </p>
                       </div>
                       <div>

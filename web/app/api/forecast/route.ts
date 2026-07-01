@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:8000'
+const ML_API_URL = process.env.ML_API_URL || 'https://leakguard-monitoring-system-production.up.railway.app'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseKey)
