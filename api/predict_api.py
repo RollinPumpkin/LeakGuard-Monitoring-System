@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import numpy as np
@@ -67,6 +67,63 @@ def forecast_24h(data: ForecastInput):
             "status": "success",
             "forecast_horizon_hours": len(preds_r),
             "predictions": forecast_results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PredictInput(BaseModel):
+    IR1_EMA_A: float
+    IR2_EMA_A: float
+    IR3_EMA_A: float
+    IS1_EMA_A: float
+    IS2_EMA_A: float
+    IS3_EMA_A: float
+    IT1_EMA_A: float
+    IT2_EMA_A: float
+    IT3_EMA_A: float
+
+model_clf_path = "model_rf_pln.pkl"
+if os.path.exists(model_clf_path):
+    model_clf = joblib.load(model_clf_path)
+else:
+    model_clf = None
+
+@app.post("/predict")
+def predict_status(data: PredictInput):
+    if model_clf is None:
+        raise HTTPException(status_code=500, detail="Classification model not found")
+        
+    try:
+        # Calculate averages as required by the classification model
+        R_avg = (data.IR1_EMA_A + data.IR2_EMA_A + data.IR3_EMA_A) / 3
+        S_avg = (data.IS1_EMA_A + data.IS2_EMA_A + data.IS3_EMA_A) / 3
+        T_avg = (data.IT1_EMA_A + data.IT2_EMA_A + data.IT3_EMA_A) / 3
+        
+        # Features for prediction
+        X_new = [[
+            R_avg, S_avg, T_avg,
+            data.IR1_EMA_A, data.IR2_EMA_A, data.IR3_EMA_A,
+            data.IS1_EMA_A, data.IS2_EMA_A, data.IS3_EMA_A,
+            data.IT1_EMA_A, data.IT2_EMA_A, data.IT3_EMA_A
+        ]]
+        
+        pred = model_clf.predict(X_new)[0]
+        prob = model_clf.predict_proba(X_new)[0]
+        max_prob = float(max(prob))
+        
+        status_map = {0: "Normal", 1: "Warning", 2: "Critical"}
+        pred_label = status_map.get(pred, "Unknown")
+        
+        action = "Semua parameter aman."
+        if pred_label == "Warning":
+            action = "Periksa keseimbangan beban."
+        elif pred_label == "Critical":
+            action = "Segera lakukan inspeksi fisik trafo!"
+            
+        return {
+            "status": pred_label,
+            "confidence_pct": round(max_prob * 100, 2),
+            "action": action
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
