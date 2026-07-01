@@ -15,6 +15,8 @@ import {
 import { Zap, ChevronRight, AlertTriangle } from 'lucide-react'
 import { useThresholds } from './ThresholdProvider'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { format, parseISO } from 'date-fns'
+import { id as idLocale, enUS } from 'date-fns/locale'
 
 interface Props {
   device: DeviceWithLatest
@@ -23,7 +25,7 @@ interface Props {
 
 export function TrafoCard({ device, onClick }: Props) {
   const { thresholds } = useThresholds()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const r = device.latest_reading
   const status = computeAlarmStatus(r, thresholds)
 
@@ -37,7 +39,9 @@ export function TrafoCard({ device, onClick }: Props) {
           </div>
           <div className="leading-tight">
             <p className="text-sm font-bold text-gray-900">{device.device_id}</p>
-            <p className="text-[11px] text-gray-400">{device.location || '—'}</p>
+            <p className="text-[11px] text-gray-400">
+              {device.location || '—'} {r ? `• ${format(parseISO(r.timestamp), 'dd MMM yyyy HH:mm', { locale: language === 'id' ? idLocale : enUS })}` : ''}
+            </p>
           </div>
         </div>
         <StatusBadge status={status} size="sm" />

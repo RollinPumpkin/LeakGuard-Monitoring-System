@@ -144,12 +144,38 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const todayReadings = readings.filter(rd => rd.timestamp.startsWith(todayStr))
   
   let maxToday = 0
+  let maxChannel = ''
+
+  const findMaxInReading = (rd: any) => {
+    const channels = [
+      { key: 'R1', val: rd.r1 }, { key: 'R2', val: rd.r2 }, { key: 'R3', val: rd.r3 },
+      { key: 'S1', val: rd.s1 }, { key: 'S2', val: rd.s2 }, { key: 'S3', val: rd.s3 },
+      { key: 'T1', val: rd.t1 }, { key: 'T2', val: rd.t2 }, { key: 'T3', val: rd.t3 },
+    ];
+    let mVal = 0;
+    let mCh = '';
+    channels.forEach(c => {
+      const v = Number(c.val) || 0;
+      if (v >= mVal) {
+        mVal = v;
+        mCh = c.key;
+      }
+    });
+    return { mVal, mCh };
+  }
+
   if (todayReadings.length > 0) {
-    maxToday = Math.max(...todayReadings.map(rd => 
-      Math.max(phaseEmaAvg(rd, 'R'), phaseEmaAvg(rd, 'S'), phaseEmaAvg(rd, 'T'))
-    ))
+    todayReadings.forEach(rd => {
+      const { mVal, mCh } = findMaxInReading(rd);
+      if (mVal >= maxToday) {
+        maxToday = mVal;
+        maxChannel = mCh;
+      }
+    });
   } else if (r) {
-    maxToday = Math.max(phaseEmaAvg(r, 'R'), phaseEmaAvg(r, 'S'), phaseEmaAvg(r, 'T'))
+    const { mVal, mCh } = findMaxInReading(r);
+    maxToday = mVal;
+    maxChannel = mCh;
   }
 
   const baseChartData = readings.map((rd) => {
@@ -364,7 +390,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <h3 className="text-3xl font-bold text-gray-900">
                 {(maxToday * 1000).toFixed(1)}
               </h3>
-              <p className="text-sm text-gray-500 mb-1">mA</p>
+              <p className="text-sm text-gray-500 mb-1">mA <span className="font-semibold text-gray-600">{maxChannel ? `(${maxChannel})` : ''}</span></p>
             </div>
           </div>
 
