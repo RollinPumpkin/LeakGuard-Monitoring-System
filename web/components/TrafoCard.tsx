@@ -26,8 +26,15 @@ interface Props {
 export function TrafoCard({ device, onClick }: Props) {
   const { thresholds } = useThresholds()
   const { t, language } = useLanguage()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const r = device.latest_reading
   const status = computeAlarmStatus(r, thresholds)
+  const timeStr = r?.timestamp || r?.created_at
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -40,7 +47,12 @@ export function TrafoCard({ device, onClick }: Props) {
           <div className="leading-tight">
             <p className="text-sm font-bold text-gray-900">{device.device_id}</p>
             <p className="text-[11px] text-gray-400">
-              {device.location || '—'} {r ? `• ${format(parseISO(r.timestamp), 'dd MMM yyyy HH:mm', { locale: language === 'id' ? idLocale : enUS })}` : ''}
+              {device.location || device.description || '—'} 
+              {mounted && timeStr ? (
+                <span className="ml-1">
+                  • {format(parseISO(timeStr), 'dd MMM yyyy HH:mm', { locale: language === 'id' ? idLocale : enUS })}
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
