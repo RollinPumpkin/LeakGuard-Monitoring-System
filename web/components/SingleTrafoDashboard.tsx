@@ -92,9 +92,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             return {
               time: format(dt, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Pred)',
               date: format(dt, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-              R_pred: item.pred_r, // Sudah dalam mA dari model Python
-              S_pred: item.pred_s, // Sudah dalam mA dari model Python
-              T_pred: item.pred_t, // Sudah dalam mA dari model Python
+              R_pred: Number(item.pred_r),
+              S_pred: Number(item.pred_s),
+              T_pred: Number(item.pred_t),
+              R_pred_range: [Number((item.pred_r * 0.92).toFixed(2)), Number((item.pred_r * 1.08).toFixed(2))],
+              S_pred_range: [Number((item.pred_s * 0.92).toFixed(2)), Number((item.pred_s * 1.08).toFixed(2))],
+              T_pred_range: [Number((item.pred_t * 0.92).toFixed(2)), Number((item.pred_t * 1.08).toFixed(2))],
               isForecast: true
             }
           })
@@ -191,6 +194,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       R_pred: null,
       S_pred: null,
       T_pred: null,
+      R_pred_range: null,
+      S_pred_range: null,
+      T_pred_range: null,
       r1: Number(toMilliAmp(Number(rd.r1)).toFixed(2)),
       r2: Number(toMilliAmp(Number(rd.r2)).toFixed(2)),
       r3: Number(toMilliAmp(Number(rd.r3)).toFixed(2)),
@@ -299,6 +305,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
               ))}
               {/* Tambahan garis putus-putus untuk prediksi */}
+              {dataKeys.map(dk => (
+                <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
+              ))}
               {dataKeys.map(dk => (
                 <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4, fill: dk.color }} activeDot={{ r: 6 }} />
               ))}
