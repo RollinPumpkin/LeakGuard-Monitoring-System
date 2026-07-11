@@ -75,9 +75,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     if (readings.length > 0) {
       // Ambil histori (maksimal 10 jam terakhir)
       const recentReadings = readings.slice(-10)
-      const historyR = recentReadings.map(rd => phaseEmaAvg(rd, 'R'))
-      const historyS = recentReadings.map(rd => phaseEmaAvg(rd, 'S'))
-      const historyT = recentReadings.map(rd => phaseEmaAvg(rd, 'T'))
+      const historyR = recentReadings.map(rd => phaseEmaAvg(rd, 'R') * 1000)
+      const historyS = recentReadings.map(rd => phaseEmaAvg(rd, 'S') * 1000)
+      const historyT = recentReadings.map(rd => phaseEmaAvg(rd, 'T') * 1000)
       
       fetch('/api/forecast', {
         method: 'POST',
@@ -92,9 +92,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             return {
               time: format(dt, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Pred)',
               date: format(dt, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-              R_pred: item.pred_r * 1000, // Konversi kembali ke mA
-              S_pred: item.pred_s * 1000,
-              T_pred: item.pred_t * 1000,
+              R_pred: item.pred_r, // Sudah dalam mA dari model Python
+              S_pred: item.pred_s, // Sudah dalam mA dari model Python
+              T_pred: item.pred_t, // Sudah dalam mA dari model Python
               isForecast: true
             }
           })

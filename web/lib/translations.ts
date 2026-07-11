@@ -79,8 +79,8 @@ export const dictionary = {
     // Settings & Add Trafo
     settings: "Settings",
     threshold_settings: "Threshold Settings",
-    critical_threshold: "Critical Threshold (mA)",
-    warning_threshold: "Warning Threshold (mA)",
+    critical_threshold: "Critical Threshold (A)",
+    warning_threshold: "Warning Threshold (A)",
     saved_successfully: "Saved successfully",
     add_new_trafo: "Add New Trafo",
     trafo_id_placeholder: "e.g., TRAFO-01",
@@ -191,8 +191,8 @@ export const dictionary = {
     // Settings & Add Trafo
     settings: "Pengaturan",
     threshold_settings: "Pengaturan Batas (Threshold)",
-    critical_threshold: "Batas Kritis (mA)",
-    warning_threshold: "Batas Peringatan (mA)",
+    critical_threshold: "Batas Kritis (A)",
+    warning_threshold: "Batas Peringatan (A)",
     saved_successfully: "Berhasil disimpan",
     add_new_trafo: "Tambah Trafo Baru",
     trafo_id_placeholder: "Contoh: TRAFO-01",
