@@ -41,8 +41,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(device.description || `Trafo ${device.device_id}`)
   const [isSavingName, setIsSavingName] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [readings, setReadings] = useState<SensorReading[]>([])
   const [forecastData, setForecastData] = useState<any>(null)
   const { t, language } = useLanguage()
 
