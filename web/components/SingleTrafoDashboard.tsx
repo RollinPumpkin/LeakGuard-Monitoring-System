@@ -309,7 +309,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
               ))}
               {dataKeys.map(dk => (
-                <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={{ r: 4, fill: dk.color }} activeDot={{ r: 6 }} />
+                <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
               ))}
               {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />}
             </AreaChart>
