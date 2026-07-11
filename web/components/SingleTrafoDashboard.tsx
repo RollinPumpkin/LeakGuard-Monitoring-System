@@ -236,7 +236,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   }
 
   const handleMouseUp = () => {
-    if (refAreaStartIndex === null || refAreaEndIndex === null) {
+    if (typeof refAreaStartIndex !== 'number' || typeof refAreaEndIndex !== 'number') {
       setRefAreaLeft(null)
       setRefAreaRight(null)
       setRefAreaStartIndex(null)
@@ -255,10 +255,14 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       setRefAreaEndIndex(null)
       return
     }
-    // Jika sudah di-zoom, sesuaikan index relatif ke data original
     const absoluteStart = zoomRange ? zoomRange.start + start : start
     const absoluteEnd = zoomRange ? zoomRange.start + end : end
-    setZoomRange({ start: absoluteStart, end: absoluteEnd })
+    
+    // Ensure we don't go out of bounds (just in case)
+    const validStart = Math.max(0, absoluteStart)
+    const validEnd = Math.min(chartData.length - 1, absoluteEnd)
+
+    setZoomRange({ start: validStart, end: validEnd })
     setRefAreaLeft(null)
     setRefAreaRight(null)
     setRefAreaStartIndex(null)
@@ -267,6 +271,16 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   const handleZoomOut = () => {
     setZoomRange(null)
+  }
+
+  // Label rentang zoom ala Steam Market
+  let zoomLabel = ''
+  if (zoomRange && chartData[zoomRange.start] && chartData[zoomRange.end]) {
+    const sData = chartData[zoomRange.start]
+    const eData = chartData[zoomRange.end]
+    const sTime = sData.time.replace(' (Pred)', '').substring(0, 5)
+    const eTime = eData.time.replace(' (Pred)', '').substring(0, 5)
+    zoomLabel = `${sData.date.substring(0,6)} ${sTime} - ${eData.date.substring(0,6)} ${eTime}`
   }
 
   const handleExportCSV = () => {
@@ -326,9 +340,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           {zoomRange && (
             <button
               onClick={handleZoomOut}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-gray-700 text-gray-100 hover:bg-gray-800 rounded-md transition-colors shadow-sm"
+              title="Reset Zoom"
             >
-              Zoom Out
+              {zoomLabel} <X size={14} />
             </button>
           )}
         </div>
