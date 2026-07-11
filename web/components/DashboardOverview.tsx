@@ -95,8 +95,8 @@ export function DashboardOverview({ devices, metrics }: Props) {
                           </div>
                         </div>
                         {/* Fasa S */}
-                        <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-3">
-                          <h4 className="text-sm font-bold text-yellow-600 mb-2">Fasa S</h4>
+                        <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3">
+                          <h4 className="text-sm font-bold text-amber-600 mb-2">Fasa S</h4>
                           <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between"><span className="text-gray-400 font-medium">S1</span><span className="font-semibold text-gray-700">{((r?.s1 || 0) * 1000).toFixed(1)} mA</span></div>
                             <div className="flex justify-between"><span className="text-gray-400 font-medium">S2</span><span className="font-semibold text-gray-700">{((r?.s2 || 0) * 1000).toFixed(1)} mA</span></div>
@@ -124,7 +124,7 @@ export function DashboardOverview({ devices, metrics }: Props) {
                           <span className="text-base font-black text-gray-800">{avgR} <span className="text-xs font-semibold text-gray-500">mA</span></span>
                         </div>
                         <div className="bg-white border border-gray-100 shadow-sm rounded-xl py-3 flex flex-col items-center justify-center">
-                          <span className="text-sm font-bold text-yellow-600 mb-0.5">S</span>
+                          <span className="text-sm font-bold text-amber-600 mb-0.5">S</span>
                           <span className="text-base font-black text-gray-800">{avgS} <span className="text-xs font-semibold text-gray-500">mA</span></span>
                         </div>
                         <div className="bg-white border border-gray-100 shadow-sm rounded-xl py-3 flex flex-col items-center justify-center">

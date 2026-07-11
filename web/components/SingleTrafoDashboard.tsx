@@ -293,7 +293,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
+              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
               {dataKeys.map(dk => (
                 <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
@@ -309,7 +309,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
+              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
               {dataKeys.map(dk => (
                 <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
@@ -525,7 +525,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             <div className="space-y-2">
               {renderChart(`Tren Arus Bocor EMA (Average RST) (mA)`, [
                 {key: 'R', color: '#ef4444', name: 'Average R'},
-                {key: 'S', color: '#eab308', name: 'Average S'},
+                {key: 'S', color: '#d97706', name: 'Average S'},
                 {key: 'T', color: '#3b82f6', name: 'Average T'}
               ])}
               
@@ -537,9 +537,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 ], 'syncGraph')}
                 
                 {renderChart(`Grafik Fasa S (mA)`, [
-                  {key: 's1', color: '#eab308', name: 'S1'},
-                  {key: 's2', color: '#fde047', name: 'S2'},
-                  {key: 's3', color: '#fef08a', name: 'S3'}
+                  {key: 's1', color: '#d97706', name: 'S1'},
+                  {key: 's2', color: '#f59e0b', name: 'S2'},
+                  {key: 's3', color: '#fbbf24', name: 'S3'}
                 ], 'syncGraph')}
                 
                 {renderChart(`Grafik Fasa T (mA)`, [

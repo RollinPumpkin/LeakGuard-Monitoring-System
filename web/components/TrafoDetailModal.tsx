@@ -279,8 +279,8 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                           <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="colorSModal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#d97706" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#d97706" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="colorTModal" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -302,18 +302,18 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                         tickLine={false}
                         label={{ value: t('current_ma'), angle: -90, position: 'insideLeft', offset: -5, style: { fontSize: 12, fill: '#64748b' } }}
                       />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelFormatter={(label) => `${t('time')}: ${label}`} />
+                      <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelFormatter={(label) => `${t('time')}: ${label}`} />
                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
                       {selectedView === 'average' ? (
                         <>
                           <Area type="monotone" name="R" dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorRModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
-                          <Area type="monotone" name="S" dataKey="S" stroke="#eab308" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                          <Area type="monotone" name="S" dataKey="S" stroke="#d97706" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                           <Area type="monotone" name="T" dataKey="T" stroke="#3b82f6" fillOpacity={1} fill="url(#colorTModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                         </>
                       ) : (
                         <>
                           <Area type="monotone" name={`${selectedView}1`} dataKey={`${selectedView}1`} stroke="#ef4444" fillOpacity={1} fill="url(#colorRModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
-                          <Area type="monotone" name={`${selectedView}2`} dataKey={`${selectedView}2`} stroke="#eab308" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                          <Area type="monotone" name={`${selectedView}2`} dataKey={`${selectedView}2`} stroke="#d97706" fillOpacity={1} fill="url(#colorSModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                           <Area type="monotone" name={`${selectedView}3`} dataKey={`${selectedView}3`} stroke="#3b82f6" fillOpacity={1} fill="url(#colorTModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                         </>
                       )}
@@ -324,18 +324,18 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="time" tick={{ fontSize: 10 }} minTickGap={24} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
+                      <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} />
                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                       {selectedView === 'average' ? (
                         <>
                           <Bar dataKey="R" fill="#ef4444" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="S" fill="#eab308" radius={[2, 2, 0, 0]} />
+                          <Bar name="S" dataKey="S" fill="#d97706" radius={[2, 2, 0, 0]} />
                           <Bar dataKey="T" fill="#3b82f6" radius={[2, 2, 0, 0]} />
                         </>
                       ) : (
                         <>
                           <Bar dataKey={`${selectedView}1`} fill="#ef4444" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey={`${selectedView}2`} fill="#eab308" radius={[2, 2, 0, 0]} />
+                          <Bar name={`${selectedView}2`} dataKey={`${selectedView}2`} fill="#d97706" radius={[2, 2, 0, 0]} />
                           <Bar dataKey={`${selectedView}3`} fill="#3b82f6" radius={[2, 2, 0, 0]} />
                         </>
                       )}

@@ -53,12 +53,12 @@ export const PHASES: Phase[] = ['R', 'S', 'T']
 
 export const phaseColor: Record<Phase, string> = {
   R: 'text-red-600',
-  S: 'text-yellow-600',
+  S: 'text-amber-600',
   T: 'text-blue-600',
 }
 
 export const phaseBg: Record<Phase, string> = {
   R: 'bg-red-50 border-red-100',
-  S: 'bg-yellow-50 border-yellow-100',
+  S: 'bg-amber-50 border-amber-100',
   T: 'bg-blue-50 border-blue-100',
 }
