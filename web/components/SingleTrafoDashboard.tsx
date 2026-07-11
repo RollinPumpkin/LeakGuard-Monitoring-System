@@ -17,7 +17,7 @@ import {
 import { deleteDevice, updateDeviceName } from '@/lib/data'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Brush
+  Tooltip, Legend, ResponsiveContainer, ReferenceArea
 } from 'recharts'
 import { TrendingUp, Zap, Table as TableIcon, Download, BarChart2, Trash2, Edit2, Check, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -41,13 +41,22 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(device.description || `Trafo ${device.device_id}`)
   const [isSavingName, setIsSavingName] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [readings, setReadings] = useState<SensorReading[]>([])
   const [forecastData, setForecastData] = useState<any>(null)
-
   const { t, language } = useLanguage()
+
+  // Zoom State
+  const [zoomRange, setZoomRange] = useState<{start: number, end: number} | null>(null)
+  const [refAreaLeft, setRefAreaLeft] = useState<string | null>(null)
+  const [refAreaRight, setRefAreaRight] = useState<string | null>(null)
+  const [refAreaStartIndex, setRefAreaStartIndex] = useState<number | null>(null)
+  const [refAreaEndIndex, setRefAreaEndIndex] = useState<number | null>(null)
 
   useEffect(() => {
     let active = true
     setLoading(true)
+    setZoomRange(null)
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'week') {
@@ -211,6 +220,56 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   // Tambahkan titik data prediksi di akhir chart
   const chartData = forecastData ? [...baseChartData, ...forecastData] : baseChartData
+  const finalChartData = zoomRange ? chartData.slice(zoomRange.start, zoomRange.end + 1) : chartData
+
+  // Zoom Handlers
+  const handleMouseDown = (e: any) => {
+    if (e && e.activeLabel) {
+      setRefAreaLeft(e.activeLabel)
+      setRefAreaStartIndex(e.activeTooltipIndex)
+    }
+  }
+
+  const handleMouseMove = (e: any) => {
+    if (e && e.activeLabel && refAreaLeft) {
+      setRefAreaRight(e.activeLabel)
+      setRefAreaEndIndex(e.activeTooltipIndex)
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (refAreaStartIndex === null || refAreaEndIndex === null) {
+      setRefAreaLeft(null)
+      setRefAreaRight(null)
+      setRefAreaStartIndex(null)
+      setRefAreaEndIndex(null)
+      return
+    }
+    let start = refAreaStartIndex
+    let end = refAreaEndIndex
+    if (start > end) {
+      [start, end] = [end, start]
+    }
+    if (end - start < 3) {
+      setRefAreaLeft(null)
+      setRefAreaRight(null)
+      setRefAreaStartIndex(null)
+      setRefAreaEndIndex(null)
+      return
+    }
+    // Jika sudah di-zoom, sesuaikan index relatif ke data original
+    const absoluteStart = zoomRange ? zoomRange.start + start : start
+    const absoluteEnd = zoomRange ? zoomRange.start + end : end
+    setZoomRange({ start: absoluteStart, end: absoluteEnd })
+    setRefAreaLeft(null)
+    setRefAreaRight(null)
+    setRefAreaStartIndex(null)
+    setRefAreaEndIndex(null)
+  }
+
+  const handleZoomOut = () => {
+    setZoomRange(null)
+  }
 
   const handleExportCSV = () => {
     const headers = ['Tanggal', 'Waktu', 'Avg R', 'Avg S', 'Avg T', 'R1', 'R2', 'R3', 'S1', 'S2', 'S3', 'T1', 'T2', 'T3']
@@ -266,6 +325,14 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <BarChart2 size={14} /> Bar
             </button>
           </div>
+          {zoomRange && (
+            <button
+              onClick={handleZoomOut}
+              className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors"
+            >
+              Zoom Out
+            </button>
+          )}
         </div>
       </div>
 
@@ -276,7 +343,15 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={syncId ? 250 : 350}>
           {chartType === 'line' ? (
-            <AreaChart data={chartData} syncId={syncId} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+            <AreaChart 
+              data={finalChartData} 
+              syncId={syncId} 
+              margin={{ top: 10, right: 30, left: 10, bottom: 0 }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              className="select-none"
+            >
               <defs>
                 {dataKeys.map(dk => (
                   <linearGradient key={dk.key} id={`color_${dk.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -311,10 +386,19 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               {dataKeys.map(dk => (
                 <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
               ))}
-              {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={320} fill="#f8fafc" />}
+              {refAreaLeft && refAreaRight ? (
+                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
+              ) : null}
             </AreaChart>
           ) : (
-            <BarChart data={chartData} syncId={syncId}>
+            <BarChart 
+              data={finalChartData} 
+              syncId={syncId}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              className="select-none"
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
               <YAxis tick={{ fontSize: 11 }} />
@@ -323,7 +407,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               {dataKeys.map(dk => (
                 <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
               ))}
-              {!syncId && <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />}
+              {refAreaLeft && refAreaRight ? (
+                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
+              ) : null}
             </BarChart>
           )}
         </ResponsiveContainer>
