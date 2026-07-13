@@ -46,6 +46,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   // Zoom State
   const [zoomRange, setZoomRange] = useState<{start: number, end: number} | null>(null)
+  const [dynamicDateRange, setDynamicDateRange] = useState<string>('')
   const [refAreaLeft, setRefAreaLeft] = useState<string | null>(null)
   const [refAreaRight, setRefAreaRight] = useState<string | null>(null)
   const [refAreaStartIndex, setRefAreaStartIndex] = useState<number | null>(null)
@@ -56,20 +57,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     setLoading(true)
     setZoomRange(null)
     ;(async () => {
-      const dateLimit = new Date()
-      if (timeFilter === 'day') {
-        dateLimit.setDate(dateLimit.getDate() - 1)
-      } else if (timeFilter === 'week') {
-        dateLimit.setDate(dateLimit.getDate() - 7)
-      } else {
-        dateLimit.setDate(dateLimit.getDate() - 30)
-      }
-
       const { data, error } = await supabase
         .from('sensor_readings')
         .select('*')
         .eq('device_id', device.device_id)
-        .gte('timestamp', dateLimit.toISOString())
         .order('timestamp', { ascending: false })
         .limit(10000)
       if (!active) return
@@ -223,7 +214,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const localeToUse = language === 'id' ? idLocale : enUS
 
   let groupedReadings = readings
-  if (timeFilter !== 'day' || true) {
+  if (timeFilter !== 'day') {
     const groups: Record<string, any> = {}
     readings.forEach(rd => {
       const date = parseISO(rd.timestamp)
@@ -446,20 +437,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return ticks
   }, [finalChartData, timeFilter])
 
-  const dateRangeStr = React.useMemo(() => {
-    if (finalChartData.length === 0) return ''
-    const firstObj = finalChartData[0]
-    const lastObj = finalChartData[finalChartData.length - 1]
-    
-    try {
-      const startD = parseISO(firstObj.time.replace(' (Pred)', '').replace(' ', 'T'))
-      const endD = parseISO(lastObj.time.replace(' (Pred)', '').replace(' ', 'T'))
-      return `${format(startD, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })} - ${format(endD, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })}`
-    } catch {
-      return ''
-    }
-  }, [finalChartData, language])
-
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -468,9 +445,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           {title}
         </h3>
         <div className="flex flex-wrap items-center gap-3">
-          {!syncId && dateRangeStr && (
+          {!syncId && dynamicDateRange && (
             <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100">
-              {dateRangeStr}
+              {dynamicDateRange}
             </span>
           )}
           {!syncId && (
@@ -527,8 +504,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         </div>
       ) : (
         <div className="relative">
-          <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }}>
-            <div style={{ minWidth: syncId ? '600px' : '1000px', height: syncId ? '250px' : '350px' }}>
+          <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }} onScroll={handleScroll}>
+            <div style={{ minWidth: `${Math.max(1000, finalChartData.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'line' ? (
                   <AreaChart 
