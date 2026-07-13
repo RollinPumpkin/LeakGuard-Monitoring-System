@@ -502,6 +502,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       )}
     </div>
   )
+  
+  const lastUpdateBadge = r?.timestamp 
+    ? <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 whitespace-nowrap border border-gray-200">{format(parseISO(r.timestamp), 'dd MMM yyyy, HH:mm:ss', { locale: language === 'id' ? idLocale : enUS })}</span>
+    : null
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-6">
@@ -552,7 +556,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Rata-rata Arus (RST)</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-600">LATEST</span>
+              {lastUpdateBadge}
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
@@ -565,7 +569,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Arus Puncak (Max)</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-50 text-gray-600">TODAY</span>
+              {lastUpdateBadge}
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
@@ -578,7 +582,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Status Operasional</p>
-              <span className="text-gray-400">•••</span>
+              {lastUpdateBadge}
             </div>
             <div className="flex items-center h-full mt-2">
               <StatusBadge status={status} size="md" />
@@ -588,7 +592,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium text-gray-500">Status Baterai</p>
-              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-600">OK</span>
+              <div className="flex gap-2 items-center">
+                {lastUpdateBadge}
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-green-50 text-green-600">OK</span>
+              </div>
             </div>
             <div className="flex items-end gap-2">
               <h3 className="text-3xl font-bold text-gray-900">
@@ -604,7 +611,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="md:col-span-3">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-800">Perbandingan Beban Fasa (RST)</h3>
-              <span className="text-xs text-gray-500">Real-time Data</span>
+              {lastUpdateBadge}
             </div>
             <div className="grid grid-cols-3 gap-4">
               {PHASES.map((phase) => {

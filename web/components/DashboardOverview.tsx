@@ -78,7 +78,15 @@ export function DashboardOverview({ devices, metrics }: Props) {
                           <p className="text-sm text-gray-500 font-medium">{name}</p>
                         </div>
                       </div>
-                      <StatusBadge status={status} size="md" />
+                      <div className="flex flex-col items-end gap-1">
+                        <StatusBadge status={status} size="md" />
+                        {r?.timestamp && (
+                          <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
+                            <Clock size={10} />
+                            {format(parseISO(r.timestamp), 'dd MMM yyyy, HH:mm:ss', { locale })}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* EMA R / S / T Section */}
