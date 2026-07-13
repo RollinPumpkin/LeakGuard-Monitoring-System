@@ -38,8 +38,11 @@ export async function POST(req: Request) {
       predictions = predictions.map((item: any, index: number) => {
         const targetDt = new Date(baseTime.getTime() + (index + 1) * 60 * 60 * 1000)
         return {
-          ...item,
-          target_timestamp: targetDt.toISOString()
+          device_id: item.device_id,
+          target_timestamp: targetDt.toISOString(),
+          predicted_r_ema: item.pred_r,
+          predicted_s_ema: item.pred_s,
+          predicted_t_ema: item.pred_t
         }
       })
     }

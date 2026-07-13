@@ -14,9 +14,9 @@ interface ChartLog {
   id: number
   device_id: string
   target_timestamp: string
-  pred_r: number
-  pred_s: number
-  pred_t: number
+  predicted_r_ema: number
+  predicted_s_ema: number
+  predicted_t_ema: number
 }
 
 interface TableLog {
@@ -110,15 +110,14 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
     )
   }
 
-  // Format data untuk Recharts
   const chartData = chartLogs.map(log => {
     const dt = parseISO(log.target_timestamp)
     return {
       time: format(dt, 'HH:mm'),
       dateFull: format(dt, 'dd MMM yyyy HH:mm'),
-      R: Number(log.pred_r),
-      S: Number(log.pred_s),
-      T: Number(log.pred_t),
+      R: Number(log.predicted_r_ema),
+      S: Number(log.predicted_s_ema),
+      T: Number(log.predicted_t_ema),
     }
   })
 

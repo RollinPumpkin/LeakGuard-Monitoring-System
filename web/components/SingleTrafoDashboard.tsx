@@ -525,7 +525,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return finalChartData.map((d: any) => d.time)
   }, [finalChartData, timeFilter])
 
-  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number) => (
+  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number, hidePrediction: boolean = false) => {
+    const chartDataToUse = hidePrediction ? (zoomRange ? baseChartData.slice(zoomRange.start, zoomRange.end + 1) : baseChartData) : finalChartData;
+    const ticksToUse = hidePrediction ? chartDataToUse.map((d: any) => d.time) : customTicks;
+
+    return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -593,11 +597,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       ) : (
         <div className="relative">
           <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }} onScroll={handleScroll}>
-            <div style={{ minWidth: `${Math.max(1000, finalChartData.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
+            <div style={{ minWidth: `${Math.max(1000, chartDataToUse.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'line' ? (
                   <AreaChart 
-                    data={finalChartData} 
+                    data={chartDataToUse} 
                     syncId={syncId} 
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     onMouseDown={handleMouseDown}
@@ -618,7 +622,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       dataKey="time" 
                       tick={{ fontSize: 11, fill: '#64748b' }} 
                       minTickGap={15} 
-                      ticks={customTicks}
+                      ticks={ticksToUse}
                       axisLine={false}
                       tickLine={false}
                       dy={10}
@@ -631,10 +635,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
                     ))}
                     {/* Tambahan garis putus-putus untuk prediksi */}
-                    {dataKeys.map(dk => (
+                    {!hidePrediction && dataKeys.map(dk => (
                       <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
                     ))}
-                    {dataKeys.map(dk => (
+                    {!hidePrediction && dataKeys.map(dk => (
                       <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
                     ))}
                     {refAreaLeft && refAreaRight ? (
@@ -643,7 +647,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                   </AreaChart>
                 ) : (
                   <BarChart 
-                    data={finalChartData} 
+                    data={chartDataToUse} 
                     syncId={syncId}
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     onMouseDown={handleMouseDown}
@@ -666,7 +670,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                     <Tooltip content={renderTooltip} cursor={{ fill: '#f1f5f9' }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                     {dataKeys.map(dk => (
-                      <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
+                      <Bar key={dk.key} name={dk.name} dataKey={dk.key} fill={dk.color} radius={[4, 4, 0, 0]} />
+                    ))}
+                    {!hidePrediction && dataKeys.map(dk => (
+                      <Bar key={`${dk.key}_pred`} name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} fill={dk.color} fillOpacity={0.5} radius={[4, 4, 0, 0]} />
                     ))}
                     {refAreaLeft && refAreaRight ? (
                       <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
@@ -680,20 +687,23 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className={`absolute left-0 top-0 w-[35px] bg-white z-10 pointer-events-none ${syncId ? 'bottom-[42px]' : 'bottom-[76px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
-                <AreaChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                <AreaChart data={chartDataToUse} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Area key={dk.key} type="monotone" dataKey={dk.key} stroke="none" fill="none" />
                   ))}
-                  {dataKeys.map(dk => (
+                  {!hidePrediction && dataKeys.map(dk => (
                     <Area key={`${dk.key}_pred`} type="monotone" dataKey={`${dk.key}_pred`} stroke="none" fill="none" />
                   ))}
                 </AreaChart>
               ) : (
-                <BarChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                <BarChart data={chartDataToUse} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Bar key={dk.key} dataKey={dk.key} fill="none" />
+                  ))}
+                  {!hidePrediction && dataKeys.map(dk => (
+                    <Bar key={`${dk.key}_pred`} dataKey={`${dk.key}_pred`} fill="none" />
                   ))}
                 </BarChart>
               )}
@@ -703,6 +713,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       )}
     </div>
   )
+}
   
   const lastUpdateBadge = r?.timestamp 
     ? <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 whitespace-nowrap border border-gray-200">{format(parseISO(r.timestamp), 'dd MMM yyyy, HH:mm:ss', { locale: language === 'id' ? idLocale : enUS })}</span>
@@ -935,19 +946,19 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                   {key: 'r1', color: '#ef4444', name: 'R1'},
                   {key: 'r2', color: '#f87171', name: 'R2'},
                   {key: 'r3', color: '#fca5a5', name: 'R3'}
-                ], 'syncGraph', maxRST)}
+                ], 'syncGraph', maxRST, true)}
                 
                 {renderChart(`Grafik Fasa S (mA)`, [
                   {key: 's1', color: '#d97706', name: 'S1'},
                   {key: 's2', color: '#f59e0b', name: 'S2'},
                   {key: 's3', color: '#fbbf24', name: 'S3'}
-                ], 'syncGraph', maxRST)}
+                ], 'syncGraph', maxRST, true)}
                 
                 {renderChart(`Grafik Fasa T (mA)`, [
                   {key: 't1', color: '#3b82f6', name: 'T1'},
                   {key: 't2', color: '#60a5fa', name: 'T2'},
                   {key: 't3', color: '#93c5fd', name: 'T3'}
-                ], 'syncGraph', maxRST)}
+                ], 'syncGraph', maxRST, true)}
               </div>
             </div>
           )}
