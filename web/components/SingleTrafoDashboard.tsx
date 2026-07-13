@@ -35,7 +35,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
   const [chartType, setChartType] = useState<'line' | 'bar'>('line')
-  const [timeFilter, setTimeFilter] = useState<'day' | 'week' | 'month'>('week')
+  const [timeFilter, setTimeFilter] = useState<'day' | 'week' | 'month'>('day')
   const [isDeleting, setIsDeleting] = useState(false)
   
   const [isEditingName, setIsEditingName] = useState(false)
@@ -472,12 +472,60 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     }
   }
 
+  // Scroll to right most on data change or filter change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const scrollbars = document.querySelectorAll('.custom-scrollbar')
+      scrollbars.forEach(el => {
+        el.scrollLeft = el.scrollWidth
+      })
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [finalChartData.length, timeFilter])
+
+  const maxRST = React.useMemo(() => {
+    let max = 0
+    finalChartData.forEach((d: any) => {
+      const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
+      keys.forEach(k => {
+        if (d[k] > max) max = d[k]
+      })
+    })
+    // Bulatkan ke atas ke kelipatan 50 terdekat untuk headroom yang rapi
+    const padded = max * 1.15
+    return Math.ceil(padded / 50) * 50
+  }, [finalChartData])
+
+  const renderTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-xl text-xs min-w-[150px]">
+          <p className="font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-2">{formatTooltipLabel(label)}</p>
+          <div className="flex flex-col gap-1.5">
+            {payload.map((entry: any, index: number) => (
+              <div key={index} className="flex justify-between items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                  <span className="text-gray-600 font-medium">{entry.name}</span>
+                </div>
+                <span className="font-bold" style={{ color: entry.color }}>
+                  {Number(entry.value).toFixed(1)} mA
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+
   // Get exactly one tick per interval to prevent duplicates
   const customTicks = React.useMemo(() => {
     return finalChartData.map((d: any) => d.time)
   }, [finalChartData, timeFilter])
 
-  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
+  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number) => (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -576,8 +624,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       dy={10}
                       tickFormatter={formatXAxis}
                     />
-                    <YAxis hide={true} domain={[0, 'auto']} />
-                    <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
+                    <YAxis hide={true} domain={[0, maxY ?? 'auto']} />
+                    <Tooltip content={renderTooltip} cursor={{ stroke: '#e2e8f0', strokeWidth: 2, strokeDasharray: '4 4' }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
                     {dataKeys.map(dk => (
                       <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
@@ -614,8 +662,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       dy={10}
                       tickFormatter={formatXAxis}
                     />
-                    <YAxis hide={true} domain={[0, 'auto']} />
-                    <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
+                    <YAxis hide={true} domain={[0, maxY ?? 'auto']} />
+                    <Tooltip content={renderTooltip} cursor={{ fill: '#f1f5f9' }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                     {dataKeys.map(dk => (
                       <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
@@ -633,7 +681,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
                 <AreaChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Area key={dk.key} type="monotone" dataKey={dk.key} stroke="none" fill="none" />
                   ))}
@@ -643,7 +691,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 </AreaChart>
               ) : (
                 <BarChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Bar key={dk.key} dataKey={dk.key} fill="none" />
                   ))}
@@ -887,19 +935,19 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                   {key: 'r1', color: '#ef4444', name: 'R1'},
                   {key: 'r2', color: '#f87171', name: 'R2'},
                   {key: 'r3', color: '#fca5a5', name: 'R3'}
-                ], 'syncGraph')}
+                ], 'syncGraph', maxRST)}
                 
                 {renderChart(`Grafik Fasa S (mA)`, [
                   {key: 's1', color: '#d97706', name: 'S1'},
                   {key: 's2', color: '#f59e0b', name: 'S2'},
                   {key: 's3', color: '#fbbf24', name: 'S3'}
-                ], 'syncGraph')}
+                ], 'syncGraph', maxRST)}
                 
                 {renderChart(`Grafik Fasa T (mA)`, [
                   {key: 't1', color: '#3b82f6', name: 'T1'},
                   {key: 't2', color: '#60a5fa', name: 'T2'},
                   {key: 't3', color: '#93c5fd', name: 'T3'}
-                ], 'syncGraph')}
+                ], 'syncGraph', maxRST)}
               </div>
             </div>
           )}
