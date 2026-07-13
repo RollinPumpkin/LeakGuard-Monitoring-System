@@ -325,6 +325,25 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     document.body.removeChild(link)
   }
 
+  const formatXAxis = (val: string) => {
+    const isPred = val.includes('(Pred)')
+    const cleanVal = val.replace(' (Pred)', '')
+    let formatted = cleanVal
+    try {
+      const d = parseISO(cleanVal.replace(' ', 'T'))
+      if (timeFilter === 'day') {
+        formatted = format(d, 'HH:mm', { locale: language === 'id' ? idLocale : enUS })
+      } else if (timeFilter === 'week') {
+        formatted = format(d, 'EEEE', { locale: language === 'id' ? idLocale : enUS })
+      } else if (timeFilter === 'month') {
+        formatted = format(d, 'dd MMM', { locale: language === 'id' ? idLocale : enUS })
+      }
+    } catch (e) {
+      formatted = cleanVal.split(' ')[1] || cleanVal
+    }
+    return isPred ? `${formatted} (Pred)` : formatted
+  }
+
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -413,7 +432,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 axisLine={false}
                 tickLine={false}
                 dy={10}
-                tickFormatter={(val) => val.includes('(Pred)') ? (val.split(' ')[1] + ' (Pred)') : val.split(' ')[1]}
+                tickFormatter={formatXAxis}
               />
               <YAxis 
                 tick={{ fontSize: 11, fill: '#64748b' }} 
@@ -450,7 +469,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 dataKey="time" 
                 tick={{ fontSize: 11 }} 
                 minTickGap={24} 
-                tickFormatter={(val) => val.includes('(Pred)') ? (val.split(' ')[1] + ' (Pred)') : val.split(' ')[1]}
+                tickFormatter={formatXAxis}
               />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
