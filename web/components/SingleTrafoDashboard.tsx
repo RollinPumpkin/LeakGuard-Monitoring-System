@@ -344,6 +344,20 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return isPred ? `${formatted} (Pred)` : formatted
   }
 
+  // Get exactly one tick per day for week/month views to prevent duplicates
+  const customTicks = React.useMemo(() => {
+    if (timeFilter === 'day') return undefined
+    const ticks: string[] = []
+    let lastDate = ''
+    finalChartData.forEach((d: any) => {
+      if (d.date !== lastDate) {
+        ticks.push(d.time)
+        lastDate = d.date
+      }
+    })
+    return ticks
+  }, [finalChartData, timeFilter])
+
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -428,7 +442,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <XAxis 
                 dataKey="time" 
                 tick={{ fontSize: 11, fill: '#64748b' }} 
-                minTickGap={24} 
+                minTickGap={15} 
+                ticks={timeFilter !== 'day' ? customTicks : undefined}
                 axisLine={false}
                 tickLine={false}
                 dy={10}
@@ -468,7 +483,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               <XAxis 
                 dataKey="time" 
                 tick={{ fontSize: 11 }} 
-                minTickGap={24} 
+                minTickGap={15} 
+                ticks={timeFilter !== 'day' ? customTicks : undefined}
                 tickFormatter={formatXAxis}
               />
               <YAxis tick={{ fontSize: 11 }} />

@@ -157,7 +157,7 @@ function DashboardContent() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-6 space-y-6">
         {loading ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="flex justify-center">
