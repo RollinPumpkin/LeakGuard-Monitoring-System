@@ -37,7 +37,7 @@ export function DashboardChart({ devices }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setHours(0, 0, 0, 0)
+        dateLimit.setDate(dateLimit.getDate() - 1)
       } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
         dateLimit.setHours(0, 0, 0, 0)

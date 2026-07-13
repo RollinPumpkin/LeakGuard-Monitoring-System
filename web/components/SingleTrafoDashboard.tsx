@@ -58,7 +58,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setHours(0, 0, 0, 0)
+        dateLimit.setDate(dateLimit.getDate() - 1)
       } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
       } else {
@@ -526,87 +526,112 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
         </div>
       ) : (
-        <div className="overflow-x-auto pb-4">
-          <div style={{ minWidth: syncId ? '500px' : '800px', height: syncId ? '250px' : '350px' }}>
+        <div className="relative">
+          <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }}>
+            <div style={{ minWidth: syncId ? '600px' : '1000px', height: syncId ? '250px' : '350px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === 'line' ? (
+                  <AreaChart 
+                    data={finalChartData} 
+                    syncId={syncId} 
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    className="select-none"
+                  >
+                    <defs>
+                      {dataKeys.map(dk => (
+                        <linearGradient key={dk.key} id={`color_${dk.key}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={dk.color} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={dk.color} stopOpacity={0}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="time" 
+                      tick={{ fontSize: 11, fill: '#64748b' }} 
+                      minTickGap={15} 
+                      ticks={customTicks}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                      tickFormatter={formatXAxis}
+                    />
+                    <YAxis hide={true} domain={[0, 'auto']} />
+                    <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
+                    {dataKeys.map(dk => (
+                      <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
+                    ))}
+                    {/* Tambahan garis putus-putus untuk prediksi */}
+                    {dataKeys.map(dk => (
+                      <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
+                    ))}
+                    {dataKeys.map(dk => (
+                      <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
+                    ))}
+                    {refAreaLeft && refAreaRight ? (
+                      <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
+                    ) : null}
+                  </AreaChart>
+                ) : (
+                  <BarChart 
+                    data={finalChartData} 
+                    syncId={syncId}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    className="select-none"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="time" 
+                      tick={{ fontSize: 11 }} 
+                      minTickGap={15} 
+                      ticks={customTicks}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                      tickFormatter={formatXAxis}
+                    />
+                    <YAxis hide={true} domain={[0, 'auto']} />
+                    <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                    {dataKeys.map(dk => (
+                      <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
+                    ))}
+                    {refAreaLeft && refAreaRight ? (
+                      <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
+                    ) : null}
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          </div>
+          
+          <div className={`absolute left-0 top-0 w-[35px] bg-white z-10 pointer-events-none ${syncId ? 'bottom-[42px]' : 'bottom-[76px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
-            <AreaChart 
-              data={finalChartData} 
-              syncId={syncId} 
-              margin={{ top: 10, right: 30, left: 10, bottom: 0 }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              className="select-none"
-            >
-              <defs>
-                {dataKeys.map(dk => (
-                  <linearGradient key={dk.key} id={`color_${dk.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={dk.color} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={dk.color} stopOpacity={0}/>
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis 
-                dataKey="time" 
-                tick={{ fontSize: 11, fill: '#64748b' }} 
-                minTickGap={15} 
-                ticks={customTicks}
-                axisLine={false}
-                tickLine={false}
-                dy={10}
-                tickFormatter={formatXAxis}
-              />
-              <YAxis 
-                tick={{ fontSize: 11, fill: '#64748b' }} 
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
-              {dataKeys.map(dk => (
-                <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
-              ))}
-              {/* Tambahan garis putus-putus untuk prediksi */}
-              {dataKeys.map(dk => (
-                <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
-              ))}
-              {dataKeys.map(dk => (
-                <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
-              ))}
-              {refAreaLeft && refAreaRight ? (
-                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
-              ) : null}
-            </AreaChart>
-          ) : (
-            <BarChart 
-              data={finalChartData} 
-              syncId={syncId}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              className="select-none"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="time" 
-                tick={{ fontSize: 11 }} 
-                minTickGap={15} 
-                ticks={customTicks}
-                tickFormatter={formatXAxis}
-              />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-              {dataKeys.map(dk => (
-                <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
-              ))}
-              {refAreaLeft && refAreaRight ? (
-                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
-              ) : null}
-            </BarChart>
-          )}
+                <AreaChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                  {dataKeys.map(dk => (
+                    <Area key={dk.key} type="monotone" dataKey={dk.key} stroke="none" fill="none" />
+                  ))}
+                  {dataKeys.map(dk => (
+                    <Area key={`${dk.key}_pred`} type="monotone" dataKey={`${dk.key}_pred`} stroke="none" fill="none" />
+                  ))}
+                </AreaChart>
+              ) : (
+                <BarChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                  {dataKeys.map(dk => (
+                    <Bar key={dk.key} dataKey={dk.key} fill="none" />
+                  ))}
+                </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
         </div>
