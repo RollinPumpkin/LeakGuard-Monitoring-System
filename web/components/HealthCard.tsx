@@ -31,13 +31,19 @@ export function HealthCard({ device, onClick }: Props) {
   const { t, language } = useLanguage()
   const r = device.latest_reading
 
-  const batt = Number(r?.battery_percent ?? 0)
-  const battColor =
-    batt >= 60 ? 'text-green-600' : batt >= 25 ? 'text-yellow-600' : 'text-red-600'
-  const wifiOk = (r?.wifi_status ?? 0) === 1
-  const rtcOk = (r?.rtc_status ?? 0) === 1
-  const sdOk = (r?.sd_status ?? 0) === 1
-  const sysOk = (r?.system_status ?? 0) === 1
+  const batt_v = Number(r?.battery_v ?? 0)
+  let batt = Number(r?.battery_percent ?? 0)
+  if (!batt && batt_v > 0) {
+    batt = Math.min(100, Math.max(0, ((batt_v - 3.0) / (4.2 - 3.0)) * 100))
+  }
+  const battColor = batt >= 60 ? 'text-green-600' : batt >= 25 ? 'text-yellow-600' : 'text-red-600'
+  
+  const isOk = (v: any) => v === 1 || v === '1' || v === true || v === 'true'
+  
+  const wifiOk = isOk(r?.wifi_status)
+  const rtcOk = isOk(r?.rtc_status)
+  const sdOk = isOk(r?.sd_status)
+  const sysOk = isOk(r?.system_status) || rtcOk
 
   return (
     <div 

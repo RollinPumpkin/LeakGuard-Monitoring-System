@@ -73,7 +73,31 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         .order('timestamp', { ascending: false })
         .limit(2000)
       if (!active) return
-      if (!error && data) setReadings((data as SensorReading[]).reverse())
+      if (!error && data) {
+        let rawReadings = (data as SensorReading[]).reverse()
+        const filledReadings: SensorReading[] = []
+        for (let i = 0; i < rawReadings.length; i++) {
+          filledReadings.push(rawReadings[i])
+          if (i < rawReadings.length - 1) {
+            const current = rawReadings[i]
+            const next = rawReadings[i + 1]
+            const t1 = new Date(current.timestamp).getTime()
+            const t2 = new Date(next.timestamp).getTime()
+            const diffHours = (t2 - t1) / (1000 * 60 * 60)
+            if (diffHours > 1.5) {
+              const numMissing = Math.floor(diffHours)
+              for (let j = 1; j < numMissing; j++) {
+                 const newDate = new Date(t1 + j * 60 * 60 * 1000)
+                 filledReadings.push({
+                   ...current,
+                   timestamp: newDate.toISOString()
+                 })
+              }
+            }
+          }
+        }
+        setReadings(filledReadings)
+      }
       setLoading(false)
     })()
     return () => { active = false }
