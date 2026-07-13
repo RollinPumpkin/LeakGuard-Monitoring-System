@@ -5,6 +5,7 @@ import './globals.css'
 import { Sidebar } from '@/components/Sidebar'
 import { ThresholdProvider } from '@/components/ThresholdProvider'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import GlobalAlertPopup from '@/components/GlobalAlertPopup'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,6 +32,7 @@ export default function RootLayout({
               </div>
               <div className="flex-1 min-w-0">{children}</div>
             </div>
+            <GlobalAlertPopup />
           </ThresholdProvider>
         </LanguageProvider>
       </body>

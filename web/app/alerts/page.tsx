@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { SensorReading } from '@/types'
 import { useThresholds } from '@/components/ThresholdProvider'
 import { computeAlarmStatus } from '@/lib/leak'
-import { Bell, AlertTriangle, XCircle, Filter } from 'lucide-react'
+import { Bell, AlertTriangle, XCircle, Filter, CheckCircle, Check } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -57,6 +57,23 @@ export default function AlertsPage() {
     }
     return () => { active = false }
   }, [supabase, thresholds])
+
+  const handleResolve = async (id: number) => {
+    // Optimistic UI update
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_resolved: true } : a))
+    
+    // Update Supabase
+    const { error } = await supabase
+      .from('sensor_readings')
+      .update({ is_resolved: true })
+      .eq('id', id)
+      
+    if (error) {
+      console.error('Error resolving alert:', error)
+      // Revert if error
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_resolved: false } : a))
+    }
+  }
 
   const renderSensorValue = (val: number | null | undefined) => {
     if (val == null) return <span className="text-gray-400">-</span>
@@ -113,11 +130,12 @@ export default function AlertsPage() {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">R1/R2/R3</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">S1/S2/S3</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">T1/T2/T3</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {alerts.map((alert, idx) => (
-                  <tr key={idx} className="hover:bg-red-50/50 transition-colors">
+                  <tr key={idx} className={`transition-colors ${alert.is_resolved ? 'bg-gray-50/50 opacity-70' : 'hover:bg-red-50/50'}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="font-medium text-gray-900">{format(parseISO(alert.timestamp), 'dd MMM yyyy', { locale })}</div>
                       <div className="text-xs text-gray-500">{format(parseISO(alert.timestamp), 'HH:mm:ss', { locale })}</div>
@@ -153,6 +171,20 @@ export default function AlertsPage() {
                         {renderSensorValue(alert.t2)} <span className="text-gray-400">/</span>
                         {renderSensorValue(alert.t3)}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {alert.is_resolved ? (
+                        <span className="inline-flex items-center gap-1.5 text-green-600 bg-green-50 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200">
+                          <CheckCircle size={14} /> Terselesaikan
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleResolve(alert.id)}
+                          className="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        >
+                          <Check size={14} /> Selesaikan
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

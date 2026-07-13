@@ -43,6 +43,7 @@ export interface SensorReading {
 
   alarm_status: AlarmStatus
   created_at: string
+  is_resolved?: boolean
   
   // Fitur prediksi masa depan (Optional)
   pred_R?: number | null
