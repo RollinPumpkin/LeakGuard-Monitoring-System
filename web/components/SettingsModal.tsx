@@ -39,7 +39,7 @@ export function SettingsModal({ onClose }: Props) {
         
         <div className="p-5 space-y-4">
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-yellow-600 mb-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-yellow-700 mb-1.5">
               <AlertTriangle size={15} /> {t('warning_threshold')}
             </label>
             <div className="relative">
@@ -48,15 +48,15 @@ export function SettingsModal({ onClose }: Props) {
                 step="0.1"
                 value={warning}
                 onChange={(e) => setWarning(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-900 font-semibold">A</span>
+              <span className="absolute right-3 top-2.5 text-xs text-gray-900 font-bold">A</span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Sistem memasuki status Warning jika arus &gt;= {warning || 0} A.</p>
+            <p className="text-[10px] text-gray-600 mt-1 font-medium">Sistem memasuki status Warning jika arus &gt;= {warning || 0} A.</p>
           </div>
 
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-red-600 mb-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-red-700 mb-1.5">
               <AlertCircle size={15} /> {t('critical_threshold')}
             </label>
             <div className="relative">

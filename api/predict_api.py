@@ -110,14 +110,8 @@ def predict_status(data: PredictInput):
         prob = model_clf.predict_proba(X_new)[0]
         max_prob = float(max(prob))
         
-        status_map = {"Normal": "Normal", "Warning": "Warning", "Critical": "Critical", 0: "Normal", 1: "Warning", 2: "Critical"}
-        pred_label = status_map.get(pred, str(pred))
-        
-        # Ensure pred_label matches exact casing for the UI
-        if pred_label.lower() == "normal": pred_label = "Normal"
-        elif pred_label.lower() == "warning": pred_label = "Warning"
-        elif pred_label.lower() == "critical": pred_label = "Critical"
-        else: pred_label = "Unknown"
+        status_map = {0: "Normal", 1: "Warning", 2: "Critical"}
+        pred_label = status_map.get(pred, "Unknown")
         
         action = "Semua parameter aman."
         if pred_label == "Warning":
