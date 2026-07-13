@@ -575,19 +575,31 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               {PHASES.map((phase) => {
                 const avg = r ? phaseEmaAvg(r, phase) : 0
                 const sensors = r ? phaseEma(r, phase) : [0,0,0]
-                const maxSensor = Math.max(...sensors) * 1000
+                const maxSensorValue = Math.max(...sensors) * 1000
+                const maxSensorIndex = sensors.findIndex(v => v * 1000 === maxSensorValue)
+                const maxSensorName = `${phase}${maxSensorIndex + 1}`
                 return (
-                <div key={phase} className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm text-center">
-                  <p className={`text-sm font-bold mb-2 ${phaseColor[phase]}`}>FASA {phase}</p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <p className="text-2xl font-bold text-gray-900">{(avg * 1000).toFixed(1)}</p>
-                    <span className="text-xs text-gray-500 font-medium">mA</span>
+                <div key={phase} className="rounded-xl p-5 border bg-white border-gray-200 shadow-sm text-center flex flex-col justify-between">
+                  <div>
+                    <p className={`text-sm font-bold mb-2 ${phaseColor[phase]}`}>FASA {phase}</p>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <p className="text-2xl font-bold text-gray-900">{(avg * 1000).toFixed(1)}</p>
+                      <span className="text-xs text-gray-500 font-medium">mA</span>
+                    </div>
                   </div>
-                  <div className="mt-3 text-left">
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Detail Sensor</p>
-                    <div className="flex justify-between items-center bg-gray-50 px-2 py-1.5 rounded text-xs text-gray-600 border border-gray-100">
-                      <span>{sensors.map(v => (v*1000).toFixed(0)).join(' • ')}</span>
-                      <span className="font-medium text-gray-900">Max: {maxSensor.toFixed(0)}</span>
+                  <div className="mt-4 text-left">
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5">Detail Sensor</p>
+                    <div className="flex flex-col gap-1.5 bg-gray-50 px-2.5 py-2 rounded-lg text-[11px] text-gray-500 border border-gray-100">
+                      <div className="flex justify-between items-center px-1">
+                        <span>{phase}1: <strong className="text-gray-800 font-semibold">{(sensors[0]*1000).toFixed(0)}</strong></span>
+                        <span className="text-gray-300">•</span>
+                        <span>{phase}2: <strong className="text-gray-800 font-semibold">{(sensors[1]*1000).toFixed(0)}</strong></span>
+                        <span className="text-gray-300">•</span>
+                        <span>{phase}3: <strong className="text-gray-800 font-semibold">{(sensors[2]*1000).toFixed(0)}</strong></span>
+                      </div>
+                      <div className="text-right pt-1.5 border-t border-gray-200/60">
+                        Max (<strong className="text-gray-800 font-semibold">{maxSensorName}</strong>): <strong className="text-gray-900 font-bold">{maxSensorValue.toFixed(0)}</strong>
+                      </div>
                     </div>
                   </div>
                 </div>

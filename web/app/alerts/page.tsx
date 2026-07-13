@@ -58,6 +58,18 @@ export default function AlertsPage() {
     return () => { active = false }
   }, [supabase, thresholds])
 
+  const renderSensorValue = (val: number | null | undefined) => {
+    if (val == null) return <span className="text-gray-400">-</span>
+    const numVal = Number(val)
+    let statusClass = 'text-gray-600'
+    if (numVal >= thresholds.critical) {
+      statusClass = 'font-bold text-red-700 bg-red-100 border border-red-300 rounded px-1.5 py-0.5'
+    } else if (numVal >= thresholds.warning) {
+      statusClass = 'font-bold text-yellow-700 bg-yellow-100 border border-yellow-400 rounded px-1.5 py-0.5'
+    }
+    return <span className={statusClass}>{numVal}</span>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -122,13 +134,25 @@ export default function AlertsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {alert.r1}/{alert.r2}/{alert.r3}
+                      <div className="flex items-center gap-1">
+                        {renderSensorValue(alert.r1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.r2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.r3)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {alert.s1}/{alert.s2}/{alert.s3}
+                      <div className="flex items-center gap-1">
+                        {renderSensorValue(alert.s1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.s2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.s3)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {alert.t1}/{alert.t2}/{alert.t3}
+                      <div className="flex items-center gap-1">
+                        {renderSensorValue(alert.t1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.t2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(alert.t3)}
+                      </div>
                     </td>
                   </tr>
                 ))}
