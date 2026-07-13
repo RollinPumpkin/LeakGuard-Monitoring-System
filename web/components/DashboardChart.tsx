@@ -5,7 +5,7 @@ import { DeviceWithLatest, SensorReading } from '@/types'
 import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ComposedChart, Brush
+  Tooltip, Legend, ResponsiveContainer, ComposedChart
 } from 'recharts'
 import { Activity } from 'lucide-react'
 import { format, parseISO, startOfHour, startOfDay, getWeekOfMonth } from 'date-fns'
@@ -37,11 +37,12 @@ export function DashboardChart({ devices }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setDate(dateLimit.getDate() - 1)
+        dateLimit.setHours(0, 0, 0, 0)
       } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
+        dateLimit.setHours(0, 0, 0, 0)
       } else {
-        dateLimit.setMonth(dateLimit.getMonth() - 1)
+        dateLimit.setDate(dateLimit.getDate() - 30)
       }
 
       const { data, error } = await supabase
@@ -158,8 +159,10 @@ export function DashboardChart({ devices }: Props) {
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+        <div className="overflow-x-auto pb-4">
+          <div style={{ minWidth: '800px', height: '320px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
             <defs>
               <linearGradient id="colorR" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
@@ -198,9 +201,10 @@ export function DashboardChart({ devices }: Props) {
             <Area type="monotone" name={t('average_r')} dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorR)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_s')} dataKey="S" stroke="#eab308" fillOpacity={1} fill="url(#colorS)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_t')} dataKey="T" stroke="#3b82f6" fillOpacity={1} fill="url(#colorT)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Brush dataKey="time" height={30} stroke="#3b82f6" fill="#f8fafc" travellerWidth={10} />
           </ComposedChart>
         </ResponsiveContainer>
+        </div>
+        </div>
       )}
     </div>
   )

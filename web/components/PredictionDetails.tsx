@@ -10,21 +10,27 @@ import {
 } from 'recharts'
 import { AlertCircle, CheckCircle, Info } from 'lucide-react'
 
-interface PredictionLog {
+interface ChartLog {
   id: number
   device_id: string
   target_timestamp: string
   pred_r: number
   pred_s: number
   pred_t: number
+}
+
+interface TableLog {
+  id: number
+  device_id: string
+  timestamp: string
   rf_status: string
   confidence: number
   action: string
-  created_at: string
 }
 
 export default function PredictionDetails({ deviceId }: { deviceId: string }) {
-  const [logs, setLogs] = useState<PredictionLog[]>([])
+  const [chartLogs, setChartLogs] = useState<ChartLog[]>([])
+  const [tableLogs, setTableLogs] = useState<TableLog[]>([])
   const [loading, setLoading] = useState(true)
   const { language } = useLanguage()
 
@@ -32,36 +38,59 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
     let active = true
     const fetchLogs = async () => {
       setLoading(true)
-      // Ambil 24 prediksi terbaru (ke depan)
-      const { data, error } = await supabase
+      // 1. Ambil 24 prediksi terbaru untuk grafik (prediction_logs)
+      const { data: cData, error: cError } = await supabase
         .from('prediction_logs')
         .select('*')
         .eq('device_id', deviceId)
         .order('target_timestamp', { ascending: false })
         .limit(24)
 
-      if (error) {
-        console.error('Error fetching prediction logs:', error)
-      } else if (data && active) {
-        // Balik array agar berurutan dari waktu terawal ke masa depan
-        setLogs(data.reverse())
+      if (cError) {
+        console.error('Error fetching prediction logs:', cError)
+      } else if (cData && active) {
+        setChartLogs(cData.reverse())
       }
+
+      // 2. Ambil histori prediksi klasifikasi untuk tabel (predictions)
+      const { data: tData, error: tError } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('device_id', deviceId)
+        .order('timestamp', { ascending: false })
+        .limit(100)
+        
+      if (tError) {
+        console.error('Error fetching table logs:', tError)
+      } else if (tData && active) {
+        setTableLogs(tData)
+      }
+      
       if (active) setLoading(false)
     }
 
     fetchLogs()
 
-    const channel = supabase
+    const channel1 = supabase
       .channel(`prediction-logs-${deviceId}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'prediction_logs', filter: `device_id=eq.${deviceId}` },
         () => fetchLogs()
       )
       .subscribe()
+      
+    const channel2 = supabase
+      .channel(`predictions-${deviceId}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'predictions', filter: `device_id=eq.${deviceId}` },
+        () => fetchLogs()
+      )
+      .subscribe()
 
     return () => {
       active = false
-      supabase.removeChannel(channel)
+      supabase.removeChannel(channel1)
+      supabase.removeChannel(channel2)
     }
   }, [deviceId])
 
@@ -73,7 +102,7 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
     )
   }
 
-  if (logs.length === 0) {
+  if (chartLogs.length === 0 && tableLogs.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm bg-gray-50/50 border-t border-gray-100">
         Belum ada log prediksi untuk perangkat ini.
@@ -82,7 +111,7 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
   }
 
   // Format data untuk Recharts
-  const chartData = logs.map(log => {
+  const chartData = chartLogs.map(log => {
     const dt = parseISO(log.target_timestamp)
     return {
       time: format(dt, 'HH:mm'),
@@ -191,7 +220,7 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {logs.map((log) => {
+                {tableLogs.map((log) => {
                   const isCrit = log.rf_status === 'Critical'
                   const isWarn = log.rf_status === 'Warning'
                   const statusColor = isCrit ? 'text-red-600 bg-red-50 border-red-200' : isWarn ? 'text-yellow-600 bg-yellow-50 border-yellow-200' : 'text-green-600 bg-green-50 border-green-200'
@@ -200,11 +229,11 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
                   return (
                     <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
-                        {format(parseISO(log.target_timestamp), 'dd MMM, HH:mm')}
+                        {format(parseISO(log.timestamp), 'dd MMM, HH:mm')}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-red-600/80">{log.pred_r.toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold text-amber-600/80">{log.pred_s.toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold text-blue-600/80">{log.pred_t.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-semibold text-red-600/80">-</td>
+                      <td className="px-4 py-3 font-semibold text-amber-600/80">-</td>
+                      <td className="px-4 py-3 font-semibold text-blue-600/80">-</td>
                       <td className="px-4 py-3">
                         <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${statusColor}`}>
                           <Icon size={12} />

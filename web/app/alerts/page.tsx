@@ -91,7 +91,7 @@ export default function AlertsPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>Daftar Insiden Kebocoran Terakhir</span>
           </div>
-          <div className="text-sm font-medium">
+          <div className="text-sm font-medium text-gray-700">
             Total: <span className="text-red-600 font-bold">{alerts.length}</span> Alerts
           </div>
         </div>
