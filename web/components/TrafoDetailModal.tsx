@@ -14,9 +14,8 @@ import {
   toMilliAmp,
   computeAlarmStatus,
 } from '@/lib/leak'
-import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Brush
+  Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { X, TrendingUp, Zap, Table as TableIcon, Download, BarChart2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -270,9 +269,11 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                   <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full" />
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  {chartType === 'line' ? (
-                    <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+                <div className="overflow-x-auto pb-4">
+                  <div style={{ minWidth: '800px', height: '260px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      {chartType === 'line' ? (
+                        <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                       <defs>
                         <linearGradient id="colorRModal" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
@@ -317,7 +318,6 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                           <Area type="monotone" name={`${selectedView}3`} dataKey={`${selectedView}3`} stroke="#3b82f6" fillOpacity={1} fill="url(#colorTModal)" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                         </>
                       )}
-                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={12} y={230} fill="#f8fafc" />
                     </AreaChart>
                   ) : (
                     <BarChart data={chartData}>
@@ -339,10 +339,11 @@ export function TrafoDetailModal({ device, onClose }: Props) {
                           <Bar dataKey={`${selectedView}3`} fill="#3b82f6" radius={[2, 2, 0, 0]} />
                         </>
                       )}
-                      <Brush dataKey="time" height={30} stroke="#cbd5e1" travellerWidth={10} />
                     </BarChart>
                   )}
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               )}
             </div>
           )}

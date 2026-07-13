@@ -88,7 +88,7 @@ export function DashboardChart({ devices }: Props) {
       }
       
       if (!groups[key]) {
-        groups[key] = { count: 0, R: 0, S: 0, T: 0, timeLabel }
+        groups[key] = { count: 0, R: 0, S: 0, T: 0 }
       }
       
       groups[key].R += Number(toMilliAmp(phaseEmaAvg(rd, 'R')))
@@ -98,12 +98,48 @@ export function DashboardChart({ devices }: Props) {
     })
     
     chartData = Object.keys(groups).map(key => ({
-      time: groups[key].timeLabel,
+      time: key,
       date: key,
       R: Number((groups[key].R / groups[key].count).toFixed(2)),
       S: Number((groups[key].S / groups[key].count).toFixed(2)),
       T: Number((groups[key].T / groups[key].count).toFixed(2)),
     }))
+  }
+
+  const formatXAxis = (val: string) => {
+    try {
+      let dStr = val
+      if (val.startsWith('Week')) return val
+      if (val.includes('W')) {
+        // e.g. 2026-07-W1
+        return val
+      }
+      const d = parseISO(dStr.replace(' ', 'T'))
+      if (isNaN(d.getTime())) return val
+      if (timeFilter === 'day') {
+        return format(d, 'HH:mm')
+      } else if (timeFilter === 'week') {
+        return format(d, 'EEEE, dd/MM', { locale: language === 'id' ? idLocale : enUS })
+      } else {
+        const weekNum = Math.min(4, Math.ceil(d.getDate() / 7))
+        return language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
+      }
+    } catch(e) { return val }
+  }
+
+  const formatTooltipLabel = (label: string) => {
+    try {
+      if (label.startsWith('Week') || label.includes('W')) return label
+      const d = parseISO(label.replace(' ', 'T'))
+      if (isNaN(d.getTime())) return label
+      if (timeFilter === 'day') {
+        return format(d, 'dd MMM yyyy, HH:mm')
+      } else if (timeFilter === 'week') {
+        return format(d, 'EEEE, dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
+      } else {
+        return format(d, 'MMM yyyy')
+      }
+    } catch(e) { return label }
   }
 
   return (
@@ -185,6 +221,7 @@ export function DashboardChart({ devices }: Props) {
               axisLine={false}
               tickLine={false}
               dy={10}
+              tickFormatter={formatXAxis}
             />
             <YAxis 
               tick={{ fontSize: 11, fill: '#64748b' }} 
@@ -195,7 +232,7 @@ export function DashboardChart({ devices }: Props) {
             <Tooltip 
               contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
               formatter={(value) => [`${Number(value ?? 0)} mA`]}
-              labelFormatter={(label) => `${t('time')}: ${label}`}
+              labelFormatter={formatTooltipLabel}
             />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
             <Area type="monotone" name={t('average_r')} dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorR)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />

@@ -17,7 +17,7 @@ import {
 import { deleteDevice, updateDeviceName } from '@/lib/data'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ReferenceArea, Brush
+  Tooltip, Legend, ResponsiveContainer, ReferenceArea
 } from 'recharts'
 import { TrendingUp, Zap, Table as TableIcon, Download, BarChart2, Trash2, Edit2, Check, X } from 'lucide-react'
 import { format, parseISO, startOfHour, startOfDay, getWeekOfMonth } from 'date-fns'
@@ -58,11 +58,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setDate(dateLimit.getDate() - 7)
+        dateLimit.setHours(0, 0, 0, 0)
       } else if (timeFilter === 'week') {
-        dateLimit.setMonth(dateLimit.getMonth() - 1)
+        dateLimit.setDate(dateLimit.getDate() - 7)
       } else {
-        dateLimit.setFullYear(dateLimit.getFullYear() - 1)
+        dateLimit.setDate(dateLimit.getDate() - 30)
       }
 
       const { data, error } = await supabase
@@ -232,7 +232,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       
       if (timeFilter === 'day') {
         key = format(startOfHour(date), 'yyyy-MM-dd HH:00')
-        timeLabel = format(date, 'HH:00')
       } else if (timeFilter === 'week') {
         key = format(startOfDay(date), 'yyyy-MM-dd')
         timeLabel = format(date, 'EEEE', { locale: localeToUse })
@@ -267,7 +266,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   const baseChartData = groupedReadings.map((rd: any) => {
     const base = {
-      time: rd._timeLabel || format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+      time: format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
       date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     }
     return {
@@ -382,18 +381,40 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     let formatted = cleanVal
     try {
       const d = parseISO(cleanVal.replace(' ', 'T'))
+      if (isNaN(d.getTime())) throw new Error('invalid')
       if (timeFilter === 'day') {
-        formatted = format(d, 'EEEE', { locale: language === 'id' ? idLocale : enUS })
+        formatted = format(d, 'HH:mm')
       } else if (timeFilter === 'week') {
+        formatted = format(d, 'EEEE, dd/MM', { locale: language === 'id' ? idLocale : enUS })
+      } else if (timeFilter === 'month') {
         const weekNum = Math.min(4, Math.ceil(d.getDate() / 7))
         formatted = language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
-      } else if (timeFilter === 'month') {
-        formatted = format(d, 'MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
       }
     } catch (e) {
       formatted = cleanVal.split(' ')[1] || cleanVal
     }
     return isPred ? `${formatted} (Pred)` : formatted
+  }
+
+  const formatTooltipLabel = (label: string) => {
+    const isPred = label.includes('(Pred)')
+    const cleanLabel = label.replace(' (Pred)', '')
+    try {
+      const d = parseISO(cleanLabel.replace(' ', 'T'))
+      if (isNaN(d.getTime())) throw new Error('invalid')
+      let res = ''
+      if (timeFilter === 'day') {
+        res = format(d, 'dd MMM yyyy, HH:mm')
+      } else if (timeFilter === 'week') {
+        res = format(d, 'EEEE, dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
+      } else {
+        const weekNum = getWeekOfMonth(d)
+        res = format(d, 'MMM yyyy', { locale: language === 'id' ? idLocale : enUS }) + (language === 'id' ? `, Minggu ke-${weekNum}` : `, Week ${weekNum}`)
+      }
+      return isPred ? `${res} (Pred)` : res
+    } catch(e) {
+      return label
+    }
   }
 
   // Get exactly one tick per interval to prevent duplicates
@@ -504,8 +525,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" />
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={syncId ? 250 : 350}>
-          {chartType === 'line' ? (
+        <div className="overflow-x-auto pb-4">
+          <div style={{ minWidth: syncId ? '500px' : '800px', height: syncId ? '250px' : '350px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'line' ? (
             <AreaChart 
               data={finalChartData} 
               syncId={syncId} 
@@ -539,7 +562,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
+              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => value != null ? [`${Number(value).toFixed(1)} mA`] : []} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
               {dataKeys.map(dk => (
                 <Area key={dk.key} type="monotone" name={dk.name} dataKey={dk.key} stroke={dk.color} fillOpacity={1} fill={`url(#color_${dk.key})`} strokeWidth={2.5} dot={false} activeDot={{ r: 6 }} />
@@ -554,7 +577,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               {refAreaLeft && refAreaRight ? (
                 <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
               ) : null}
-              {!syncId && <Brush dataKey="time" height={30} stroke="#3b82f6" fill="#f8fafc" travellerWidth={10} />}
             </AreaChart>
           ) : (
             <BarChart 
@@ -574,7 +596,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 tickFormatter={formatXAxis}
               />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
+              <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={formatTooltipLabel} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
               {dataKeys.map(dk => (
                 <Bar key={dk.key} dataKey={dk.key} fill={dk.color} radius={[2, 2, 0, 0]} name={dk.name} />
@@ -584,7 +606,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               ) : null}
             </BarChart>
           )}
-        </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
+        </div>
       )}
     </div>
   )
