@@ -58,7 +58,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setDate(dateLimit.getDate() - 1)
+        dateLimit.setHours(0, 0, 0, 0)
       } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
       } else {
