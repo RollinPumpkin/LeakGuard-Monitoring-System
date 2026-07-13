@@ -115,7 +115,13 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       fetch('/api/forecast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_id: device.device_id, history_r: historyR, history_s: historyS, history_t: historyT })
+        body: JSON.stringify({ 
+          device_id: device.device_id, 
+          history_r: historyR, 
+          history_s: historyS, 
+          history_t: historyT,
+          last_timestamp: recentReadings[recentReadings.length - 1]?.timestamp
+        })
       })
       .then(res => res.json())
       .then(data => {
@@ -334,7 +340,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       if (timeFilter === 'day') {
         formatted = format(d, 'EEEE', { locale: language === 'id' ? idLocale : enUS })
       } else if (timeFilter === 'week') {
-        const weekNum = Math.ceil(d.getDate() / 7)
+        const weekNum = Math.min(4, Math.ceil(d.getDate() / 7))
         formatted = language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
       } else if (timeFilter === 'month') {
         formatted = format(d, 'MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
@@ -356,7 +362,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         if (timeFilter === 'day') {
           key = format(dObj, 'yyyy-MM-dd')
         } else if (timeFilter === 'week') {
-          const weekNum = Math.ceil(dObj.getDate() / 7)
+          const weekNum = Math.min(4, Math.ceil(dObj.getDate() / 7))
           key = `${dObj.getFullYear()}-${dObj.getMonth()}-W${weekNum}`
         } else if (timeFilter === 'month') {
           key = `${dObj.getFullYear()}-${dObj.getMonth()}`
@@ -643,11 +649,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         {/* Analisis Detail */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-3">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
               <h3 className="text-sm font-semibold text-gray-800">Perbandingan Beban Fasa (RST)</h3>
               {lastUpdateBadge}
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PHASES.map((phase) => {
                 const avg = r ? phaseEmaAvg(r, phase) : 0
                 const sensors = r ? phaseEma(r, phase) : [0,0,0]

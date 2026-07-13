@@ -24,7 +24,25 @@ export async function POST(req: Request) {
     }
 
     const forecastResult = await response.json()
-    const predictions = forecastResult.predictions || []
+    let predictions = forecastResult.predictions || []
+
+    // Recompute target_timestamp to align perfectly with the local device timezone
+    if (predictions.length > 0) {
+      let baseTime = new Date()
+      if (body.last_timestamp) {
+        baseTime = new Date(body.last_timestamp)
+      }
+      // Round down to the current hour
+      baseTime.setMinutes(0, 0, 0)
+
+      predictions = predictions.map((item: any, index: number) => {
+        const targetDt = new Date(baseTime.getTime() + (index + 1) * 60 * 60 * 1000)
+        return {
+          ...item,
+          target_timestamp: targetDt.toISOString()
+        }
+      })
+    }
     
     // Save to Supabase (Upsert) untuk histori permanen
     if (predictions.length > 0) {

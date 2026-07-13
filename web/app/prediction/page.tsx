@@ -7,6 +7,7 @@ import { RefreshCw, Zap, AlertTriangle, ShieldCheck, Activity } from 'lucide-rea
 import { format, parseISO } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
+import PredictionDetails from '@/components/PredictionDetails'
 
 export default function PredictionPage() {
   const [devices, setDevices] = useState<DeviceWithLatest[]>([])
@@ -87,7 +88,7 @@ export default function PredictionPage() {
             <p className="text-sm text-gray-500">{t('no_data')}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-6">
             {devices.map((device) => {
               const pred = device.latest_prediction
               const isNormal = !pred?.rf_status || pred.rf_status === 'Normal'
@@ -135,6 +136,9 @@ export default function PredictionPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Expandable / Attached Chart and Logs */}
+                  <PredictionDetails deviceId={device.device_id} />
                 </div>
               )
             })}
