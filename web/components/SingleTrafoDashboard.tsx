@@ -280,8 +280,46 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     }
   })
 
+  let groupedForecastData = forecastData || []
+  if (forecastData && timeFilter !== 'day') {
+    const fg: Record<string, any> = {}
+    forecastData.forEach((fd: any) => {
+      const date = parseISO(fd.time.replace(' (Pred)', '').replace(' ', 'T'))
+      let key = ''
+      if (timeFilter === 'week') {
+        key = format(startOfDay(date), 'yyyy-MM-dd')
+      } else if (timeFilter === 'month') {
+        key = `Week ${getWeekOfMonth(date)}`
+      }
+      if (!fg[key]) {
+        fg[key] = { count: 0, sumR: 0, sumS: 0, sumT: 0, firstFd: fd }
+      }
+      fg[key].count += 1
+      fg[key].sumR += fd.R_pred
+      fg[key].sumS += fd.S_pred
+      fg[key].sumT += fd.T_pred
+    })
+    
+    groupedForecastData = Object.keys(fg).map(key => {
+      const g = fg[key]
+      const avgR = Number((g.sumR / g.count).toFixed(2))
+      const avgS = Number((g.sumS / g.count).toFixed(2))
+      const avgT = Number((g.sumT / g.count).toFixed(2))
+      
+      return {
+        ...g.firstFd,
+        R_pred: avgR,
+        S_pred: avgS,
+        T_pred: avgT,
+        R_pred_range: [Number((avgR * 0.92).toFixed(2)), Number((avgR * 1.08).toFixed(2))],
+        S_pred_range: [Number((avgS * 0.92).toFixed(2)), Number((avgS * 1.08).toFixed(2))],
+        T_pred_range: [Number((avgT * 0.92).toFixed(2)), Number((avgT * 1.08).toFixed(2))],
+      }
+    })
+  }
+
   // Tambahkan titik data prediksi di akhir chart
-  const chartData = forecastData ? [...baseChartData, ...forecastData] : baseChartData
+  const chartData = [...baseChartData, ...groupedForecastData]
   const finalChartData = zoomRange ? chartData.slice(zoomRange.start, zoomRange.end + 1) : chartData
 
   // Zoom Handlers
@@ -436,30 +474,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   // Get exactly one tick per interval to prevent duplicates
   const customTicks = React.useMemo(() => {
-    const ticks: string[] = []
-    let lastKey = ''
-    finalChartData.forEach((d: any) => {
-      let key = ''
-      try {
-        const dObj = parseISO(d.time.replace(' (Pred)', '').replace(' ', 'T'))
-        if (timeFilter === 'day') {
-          key = format(dObj, 'yyyy-MM-dd')
-        } else if (timeFilter === 'week') {
-          const weekNum = Math.min(4, Math.ceil(dObj.getDate() / 7))
-          key = `${dObj.getFullYear()}-${dObj.getMonth()}-W${weekNum}`
-        } else if (timeFilter === 'month') {
-          key = `${dObj.getFullYear()}-${dObj.getMonth()}`
-        }
-      } catch (e) {
-        key = d.date
-      }
-      
-      if (key !== lastKey) {
-        ticks.push(d.time)
-        lastKey = key
-      }
-    })
-    return ticks
+    return finalChartData.map((d: any) => d.time)
   }, [finalChartData, timeFilter])
 
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (

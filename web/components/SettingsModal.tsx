@@ -48,9 +48,9 @@ export function SettingsModal({ onClose }: Props) {
                 step="0.1"
                 value={warning}
                 onChange={(e) => setWarning(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-medium">A</span>
+              <span className="absolute right-3 top-2.5 text-xs text-gray-900 font-semibold">A</span>
             </div>
             <p className="text-[10px] text-gray-500 mt-1">Sistem memasuki status Warning jika arus &gt;= {warning || 0} A.</p>
           </div>
@@ -65,9 +65,9 @@ export function SettingsModal({ onClose }: Props) {
                 step="0.1"
                 value={critical}
                 onChange={(e) => setCritical(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-medium">A</span>
+              <span className="absolute right-3 top-2.5 text-xs text-gray-900 font-semibold">A</span>
             </div>
             <p className="text-[10px] text-gray-500 mt-1">Status Critical &gt;= {critical || 0} A.</p>
           </div>
