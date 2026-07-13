@@ -68,7 +68,7 @@ export function DashboardChart({ devices }: Props) {
   let chartData: any[] = []
 
   if (readings.length > 0) {
-    const groups: Record<string, { count: number, R: number, S: number, T: number, timeLabel: string }> = {}
+    const groups: Record<string, { count: number, R: number, S: number, T: number }> = {}
     
     readings.forEach(rd => {
       const date = parseISO(rd.timestamp)
