@@ -17,10 +17,10 @@ import {
 import { deleteDevice, updateDeviceName } from '@/lib/data'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ReferenceArea
+  Tooltip, Legend, ResponsiveContainer, ReferenceArea, Brush
 } from 'recharts'
 import { TrendingUp, Zap, Table as TableIcon, Download, BarChart2, Trash2, Edit2, Check, X } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfHour, startOfDay, getWeekOfMonth } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -220,9 +220,54 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     maxChannel = mCh;
   }
 
-  const baseChartData = readings.map((rd) => {
+  const localeToUse = language === 'id' ? idLocale : enUS
+
+  let groupedReadings = readings
+  if (timeFilter !== 'day' || true) {
+    const groups: Record<string, any> = {}
+    readings.forEach(rd => {
+      const date = parseISO(rd.timestamp)
+      let key = ''
+      let timeLabel = ''
+      
+      if (timeFilter === 'day') {
+        key = format(startOfHour(date), 'yyyy-MM-dd HH:00')
+        timeLabel = format(date, 'HH:00')
+      } else if (timeFilter === 'week') {
+        key = format(startOfDay(date), 'yyyy-MM-dd')
+        timeLabel = format(date, 'EEEE', { locale: localeToUse })
+      } else if (timeFilter === 'month') {
+        const weekNum = getWeekOfMonth(date)
+        key = `Week ${weekNum}`
+        timeLabel = language === 'id' ? `Minggu ${weekNum}` : `Week ${weekNum}`
+      }
+      
+      if (!groups[key]) {
+        groups[key] = { count: 0, sum: {}, firstRd: rd, timeLabel }
+      }
+      groups[key].count += 1
+      const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
+      keys.forEach(k => {
+        groups[key].sum[k] = (groups[key].sum[k] || 0) + Number(rd[k as keyof SensorReading] || 0)
+      })
+    })
+
+    groupedReadings = Object.keys(groups).map(key => {
+      const g = groups[key]
+      const avgRd: any = { ...g.firstRd, timestamp: g.firstRd.timestamp }
+      const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
+      keys.forEach(k => {
+        avgRd[k] = (g.sum[k] / g.count).toString()
+      })
+      avgRd._timeLabel = g.timeLabel
+      avgRd._dateKey = key
+      return avgRd as SensorReading & { _timeLabel?: string, _dateKey?: string }
+    })
+  }
+
+  const baseChartData = groupedReadings.map((rd: any) => {
     const base = {
-      time: format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+      time: rd._timeLabel || format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
       date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     }
     return {
@@ -509,6 +554,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               {refAreaLeft && refAreaRight ? (
                 <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
               ) : null}
+              {!syncId && <Brush dataKey="time" height={30} stroke="#3b82f6" fill="#f8fafc" travellerWidth={10} />}
             </AreaChart>
           ) : (
             <BarChart 
