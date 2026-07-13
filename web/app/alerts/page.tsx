@@ -2,21 +2,19 @@
 
 import React, { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { SensorReading } from '@/types'
+import { SensorReading, Alert } from '@/types'
 import { useThresholds } from '@/components/ThresholdProvider'
-import { computeAlarmStatus } from '@/lib/leak'
-import { Bell, AlertTriangle, XCircle, Filter, CheckCircle, Check } from 'lucide-react'
+import { Bell, AlertTriangle, XCircle, CheckCircle, Check } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-interface AlertItem extends SensorReading {
-  status: 'Warning' | 'Critical'
-  device_id: string
+interface AlertWithReading extends Alert {
+  sensor_readings: SensorReading | null
 }
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<AlertItem[]>([])
+  const [alerts, setAlerts] = useState<AlertWithReading[]>([])
   const [loading, setLoading] = useState(true)
   const { thresholds } = useThresholds()
   const { t, language } = useLanguage()
@@ -27,51 +25,40 @@ export default function AlertsPage() {
     let active = true
     const fetchAlerts = async () => {
       setLoading(true)
-      const limitDate = new Date()
-      limitDate.setDate(limitDate.getDate() - 30)
       
+      // Mengambil data dari tabel alerts dan join dengan sensor_readings
       const { data, error } = await supabase
-        .from('sensor_readings')
-        .select('*')
-        .gte('timestamp', limitDate.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(3000)
+        .from('alerts')
+        .select('*, sensor_readings(*)')
+        .order('created_at', { ascending: false })
+        .limit(500)
 
       if (!active) return
       
       if (data && !error) {
-        const filteredAlerts: AlertItem[] = []
-        for (const rd of data as SensorReading[]) {
-          const status = computeAlarmStatus(rd, thresholds)
-          if (status !== 'Normal') {
-            filteredAlerts.push({ ...rd, status })
-          }
-        }
-        setAlerts(filteredAlerts)
+        setAlerts(data as AlertWithReading[])
       }
       setLoading(false)
     }
 
-    if (thresholds.warning > 0) {
-      fetchAlerts()
-    }
+    fetchAlerts()
     return () => { active = false }
-  }, [supabase, thresholds])
+  }, [supabase])
 
   const handleResolve = async (id: number) => {
     // Optimistic UI update
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_resolved: true } : a))
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a))
     
-    // Update Supabase
+    // Update Supabase (di tabel alerts)
     const { error } = await supabase
-      .from('sensor_readings')
-      .update({ is_resolved: true })
+      .from('alerts')
+      .update({ is_read: true })
       .eq('id', id)
       
     if (error) {
       console.error('Error resolving alert:', error)
       // Revert if error
-      setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_resolved: false } : a))
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: false } : a))
     }
   }
 
@@ -102,8 +89,7 @@ export default function AlertsPage() {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Filter size={16} />
-            <span>Menampilkan data 30 hari terakhir</span>
+            <span>Daftar Insiden Kebocoran Terakhir</span>
           </div>
           <div className="text-sm font-medium">
             Total: <span className="text-red-600 font-bold">{alerts.length}</span> Alerts
@@ -134,11 +120,14 @@ export default function AlertsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {alerts.map((alert, idx) => (
-                  <tr key={idx} className={`transition-colors ${alert.is_resolved ? 'bg-gray-50/50 opacity-70' : 'hover:bg-red-50/50'}`}>
+                {alerts.map((alert, idx) => {
+                  const rd = alert.sensor_readings
+                  const alertTime = rd ? rd.timestamp : alert.created_at
+                  return (
+                  <tr key={idx} className={`transition-colors ${alert.is_read ? 'bg-gray-50/50 opacity-70' : 'hover:bg-red-50/50'}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      <div className="font-medium text-gray-900">{format(parseISO(alert.timestamp), 'dd MMM yyyy', { locale })}</div>
-                      <div className="text-xs text-gray-500">{format(parseISO(alert.timestamp), 'HH:mm:ss', { locale })}</div>
+                      <div className="font-medium text-gray-900">{format(parseISO(alertTime), 'dd MMM yyyy', { locale })}</div>
+                      <div className="text-xs text-gray-500">{format(parseISO(alertTime), 'HH:mm:ss', { locale })}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                       Trafo {alert.device_id}
@@ -153,27 +142,27 @@ export default function AlertsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        {renderSensorValue(alert.r1)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.r2)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.r3)}
+                        {renderSensorValue(rd?.r1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.r2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.r3)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        {renderSensorValue(alert.s1)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.s2)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.s3)}
+                        {renderSensorValue(rd?.s1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.s2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.s3)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        {renderSensorValue(alert.t1)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.t2)} <span className="text-gray-400">/</span>
-                        {renderSensorValue(alert.t3)}
+                        {renderSensorValue(rd?.t1)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.t2)} <span className="text-gray-400">/</span>
+                        {renderSensorValue(rd?.t3)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {alert.is_resolved ? (
+                      {alert.is_read ? (
                         <span className="inline-flex items-center gap-1.5 text-green-600 bg-green-50 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200">
                           <CheckCircle size={14} /> Terselesaikan
                         </span>
@@ -187,7 +176,7 @@ export default function AlertsPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>

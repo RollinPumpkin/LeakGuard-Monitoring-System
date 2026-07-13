@@ -64,3 +64,14 @@ export interface DeviceWithLatest extends Device {
   latest_reading: SensorReading | null
   latest_prediction: Prediction | null
 }
+
+export interface Alert {
+  id: number
+  device_id: string
+  status: string
+  message: string
+  delta_max: number | null
+  is_read: boolean
+  reading_id: number | null
+  created_at: string
+}
