@@ -58,11 +58,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     ;(async () => {
       const dateLimit = new Date()
       if (timeFilter === 'day') {
-        dateLimit.setHours(0, 0, 0, 0)
-      } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
-      } else {
+      } else if (timeFilter === 'week') {
         dateLimit.setMonth(dateLimit.getMonth() - 1)
+      } else {
+        dateLimit.setFullYear(dateLimit.getFullYear() - 1)
       }
 
       const { data, error } = await supabase
@@ -71,7 +71,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         .eq('device_id', device.device_id)
         .gte('timestamp', dateLimit.toISOString())
         .order('timestamp', { ascending: false })
-        .limit(2000)
+        .limit(10000)
       if (!active) return
       if (!error && data) {
         let rawReadings = (data as SensorReading[]).reverse()
@@ -332,11 +332,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     try {
       const d = parseISO(cleanVal.replace(' ', 'T'))
       if (timeFilter === 'day') {
-        formatted = format(d, 'HH:mm', { locale: language === 'id' ? idLocale : enUS })
-      } else if (timeFilter === 'week') {
         formatted = format(d, 'EEEE', { locale: language === 'id' ? idLocale : enUS })
+      } else if (timeFilter === 'week') {
+        const weekNum = Math.ceil(d.getDate() / 7)
+        formatted = language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
       } else if (timeFilter === 'month') {
-        formatted = format(d, 'dd MMM', { locale: language === 'id' ? idLocale : enUS })
+        formatted = format(d, 'MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
       }
     } catch (e) {
       formatted = cleanVal.split(' ')[1] || cleanVal
@@ -344,15 +345,29 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return isPred ? `${formatted} (Pred)` : formatted
   }
 
-  // Get exactly one tick per day for week/month views to prevent duplicates
+  // Get exactly one tick per interval to prevent duplicates
   const customTicks = React.useMemo(() => {
-    if (timeFilter === 'day') return undefined
     const ticks: string[] = []
-    let lastDate = ''
+    let lastKey = ''
     finalChartData.forEach((d: any) => {
-      if (d.date !== lastDate) {
+      let key = ''
+      try {
+        const dObj = parseISO(d.time.replace(' (Pred)', '').replace(' ', 'T'))
+        if (timeFilter === 'day') {
+          key = format(dObj, 'yyyy-MM-dd')
+        } else if (timeFilter === 'week') {
+          const weekNum = Math.ceil(dObj.getDate() / 7)
+          key = `${dObj.getFullYear()}-${dObj.getMonth()}-W${weekNum}`
+        } else if (timeFilter === 'month') {
+          key = `${dObj.getFullYear()}-${dObj.getMonth()}`
+        }
+      } catch (e) {
+        key = d.date
+      }
+      
+      if (key !== lastKey) {
         ticks.push(d.time)
-        lastDate = d.date
+        lastKey = key
       }
     })
     return ticks
@@ -443,7 +458,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 dataKey="time" 
                 tick={{ fontSize: 11, fill: '#64748b' }} 
                 minTickGap={15} 
-                ticks={timeFilter !== 'day' ? customTicks : undefined}
+                ticks={customTicks}
                 axisLine={false}
                 tickLine={false}
                 dy={10}
@@ -484,7 +499,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 dataKey="time" 
                 tick={{ fontSize: 11 }} 
                 minTickGap={15} 
-                ticks={timeFilter !== 'day' ? customTicks : undefined}
+                ticks={customTicks}
                 tickFormatter={formatXAxis}
               />
               <YAxis tick={{ fontSize: 11 }} />
