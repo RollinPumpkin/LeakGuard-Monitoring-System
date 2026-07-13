@@ -42,14 +42,23 @@ export function HealthDetailModal({ device, onClose }: Props) {
 
   if (!device) return null
 
-  const chartData = readings.map((rd) => ({
-    time: format(parseISO(rd.timestamp), 'HH:mm', { locale: language === 'id' ? idLocale : enUS }),
-    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-    battery_percent: Number(rd.battery_percent ?? 0),
-    battery_v: Number(rd.battery_v ?? 0).toFixed(2),
-    wifi_rssi: Number(rd.wifi_rssi ?? 0),
-    sys_ok: (rd.system_status ?? 0) === 1 ? 'OK' : 'Error'
-  }))
+  const chartData = readings.map((rd) => {
+    const batt_v = Number(rd.battery_v ?? 0)
+    let batt = Number(rd.battery_percent ?? 0)
+    if (!batt && batt_v > 0) {
+      batt = Math.min(100, Math.max(0, ((batt_v - 3.0) / (4.2 - 3.0)) * 100))
+    }
+    const isOk = (v: any) => v === 1 || v === '1' || v === true || v === 'true'
+
+    return {
+      time: format(parseISO(rd.timestamp), 'HH:mm', { locale: language === 'id' ? idLocale : enUS }),
+      date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
+      battery_percent: Number(batt.toFixed(0)),
+      battery_v: batt_v.toFixed(2),
+      wifi_rssi: rd.wifi_rssi != null ? Number(rd.wifi_rssi) : null,
+      sys_ok: isOk(rd.system_status) || isOk(rd.rtc_status) ? 'OK' : 'Error'
+    }
+  })
 
   const handleExportCSV = () => {
     const headers = [t('date'), t('time'), `${t('battery')} (%)`, `${t('battery')} (V)`, 'WiFi RSSI (dBm)', t('system_status')]
