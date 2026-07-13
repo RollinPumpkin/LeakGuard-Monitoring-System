@@ -101,7 +101,6 @@ def predict_status(data: PredictInput):
         
         # Features for prediction
         X_new = [[
-            R_avg, S_avg, T_avg,
             data.IR1_EMA_A, data.IR2_EMA_A, data.IR3_EMA_A,
             data.IS1_EMA_A, data.IS2_EMA_A, data.IS3_EMA_A,
             data.IT1_EMA_A, data.IT2_EMA_A, data.IT3_EMA_A
