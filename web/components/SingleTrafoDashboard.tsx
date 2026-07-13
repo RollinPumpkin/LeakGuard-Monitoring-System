@@ -35,7 +35,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart')
   const [chartType, setChartType] = useState<'line' | 'bar'>('line')
-  const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week')
+  const [timeFilter, setTimeFilter] = useState<'day' | 'week' | 'month'>('week')
   const [isDeleting, setIsDeleting] = useState(false)
   
   const [isEditingName, setIsEditingName] = useState(false)
@@ -57,7 +57,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     setZoomRange(null)
     ;(async () => {
       const dateLimit = new Date()
-      if (timeFilter === 'week') {
+      if (timeFilter === 'day') {
+        dateLimit.setDate(dateLimit.getDate() - 1)
+      } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
       } else {
         dateLimit.setMonth(dateLimit.getMonth() - 1)
@@ -97,7 +99,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           const formattedForecast = data.result.map((item: any) => {
             const dt = parseISO(item.target_timestamp)
             return {
-              time: format(dt, 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }) + ' (Pred)',
+              time: format(dt, 'yyyy-MM-dd HH:mm:ss') + ' (Pred)',
               date: format(dt, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
               R_pred: Number(item.pred_r),
               S_pred: Number(item.pred_s),
@@ -190,7 +192,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   const baseChartData = readings.map((rd) => {
     const base = {
-      time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }),
+      time: format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
       date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     }
     return {
@@ -278,9 +280,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   if (zoomRange && chartData[zoomRange.start] && chartData[zoomRange.end]) {
     const sData = chartData[zoomRange.start]
     const eData = chartData[zoomRange.end]
-    const sTime = sData.time.replace(' (Pred)', '').substring(0, 5)
-    const eTime = eData.time.replace(' (Pred)', '').substring(0, 5)
-    zoomLabel = `${sData.date.substring(0,6)} ${sTime} - ${eData.date.substring(0,6)} ${eTime}`
+    const sTime = sData.time.replace(' (Pred)', '')
+    const eTime = eData.time.replace(' (Pred)', '')
+    zoomLabel = `${sTime} - ${eTime}`
   }
 
   const handleExportCSV = () => {
@@ -310,10 +312,16 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           {!syncId && (
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
+                onClick={() => setTimeFilter('day')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Daily
+              </button>
+              <button
                 onClick={() => setTimeFilter('week')}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                {t('week')}
+                {t('week') || 'Week'}
               </button>
               <button
                 onClick={() => setTimeFilter('month')}
@@ -381,6 +389,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                 axisLine={false}
                 tickLine={false}
                 dy={10}
+                tickFormatter={(val) => val.includes('(Pred)') ? (val.split(' ')[1] + ' (Pred)') : val.split(' ')[1]}
               />
               <YAxis 
                 tick={{ fontSize: 11, fill: '#64748b' }} 
@@ -413,7 +422,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
               className="select-none"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
+              <XAxis 
+                dataKey="time" 
+                tick={{ fontSize: 11 }} 
+                minTickGap={24} 
+                tickFormatter={(val) => val.includes('(Pred)') ? (val.split(' ')[1] + ' (Pred)') : val.split(' ')[1]}
+              />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip itemSorter={(item) => -(Number(item.value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [`${Number(value ?? 0)} mA`]} labelStyle={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }} labelFormatter={(label) => label} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
