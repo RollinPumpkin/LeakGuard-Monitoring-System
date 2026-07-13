@@ -5,10 +5,10 @@ import { DeviceWithLatest, SensorReading } from '@/types'
 import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, ComposedChart
+  Tooltip, Legend, ResponsiveContainer, ComposedChart, Brush
 } from 'recharts'
-import { TrendingUp, Activity } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { Activity } from 'lucide-react'
+import { format, parseISO, startOfHour, startOfDay, getWeekOfMonth } from 'date-fns'
 import { id as idLocale, enUS } from 'date-fns/locale'
 import { toMilliAmp, phaseEmaAvg } from '@/lib/leak'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -21,7 +21,7 @@ export function DashboardChart({ devices }: Props) {
   const [readings, setReadings] = useState<SensorReading[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
-  const [timeFilter, setTimeFilter] = useState<'week' | 'month'>('week')
+  const [timeFilter, setTimeFilter] = useState<'day' | 'week' | 'month'>('day')
   const { t, language } = useLanguage()
 
   useEffect(() => {
@@ -36,7 +36,9 @@ export function DashboardChart({ devices }: Props) {
     setLoading(true)
     ;(async () => {
       const dateLimit = new Date()
-      if (timeFilter === 'week') {
+      if (timeFilter === 'day') {
+        dateLimit.setDate(dateLimit.getDate() - 1)
+      } else if (timeFilter === 'week') {
         dateLimit.setDate(dateLimit.getDate() - 7)
       } else {
         dateLimit.setMonth(dateLimit.getMonth() - 1)
@@ -47,10 +49,12 @@ export function DashboardChart({ devices }: Props) {
         .select('*')
         .eq('device_id', selectedDeviceId)
         .gte('timestamp', dateLimit.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(2000) // Membatasi data agar browser tidak lag
+        .order('timestamp', { ascending: true }) // Sort ascending for correct chronological order in chart
+
       if (!active) return
-      if (!error && data) setReadings((data as SensorReading[]).reverse())
+      if (!error && data) {
+        setReadings(data as SensorReading[])
+      }
       setLoading(false)
     })()
     return () => { active = false }
@@ -58,16 +62,48 @@ export function DashboardChart({ devices }: Props) {
 
   if (devices.length === 0) return null
 
-  const chartData = readings.map((rd) => ({
-    time: format(parseISO(rd.timestamp), 'HH:mm:ss', { locale: language === 'id' ? idLocale : enUS }),
-    date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-    R: Number(toMilliAmp(phaseEmaAvg(rd, 'R')).toFixed(2)),
-    S: Number(toMilliAmp(phaseEmaAvg(rd, 'S')).toFixed(2)),
-    T: Number(toMilliAmp(phaseEmaAvg(rd, 'T')).toFixed(2)),
-    pred_R: rd.pred_R || null,
-    pred_S: rd.pred_S || null,
-    pred_T: rd.pred_T || null,
-  }))
+  const localeToUse = language === 'id' ? idLocale : enUS
+
+  let chartData: any[] = []
+
+  if (readings.length > 0) {
+    const groups: Record<string, { count: number, R: number, S: number, T: number, timeLabel: string }> = {}
+    
+    readings.forEach(rd => {
+      const date = parseISO(rd.timestamp)
+      let key = ''
+      let timeLabel = ''
+      
+      if (timeFilter === 'day') {
+        key = format(startOfHour(date), 'yyyy-MM-dd HH:00')
+        timeLabel = format(date, 'HH:00')
+      } else if (timeFilter === 'week') {
+        key = format(startOfDay(date), 'yyyy-MM-dd')
+        timeLabel = format(date, 'EEEE', { locale: localeToUse })
+      } else if (timeFilter === 'month') {
+        const weekNum = getWeekOfMonth(date)
+        key = `Week ${weekNum}`
+        timeLabel = `Minggu ${weekNum}`
+      }
+      
+      if (!groups[key]) {
+        groups[key] = { count: 0, R: 0, S: 0, T: 0, timeLabel }
+      }
+      
+      groups[key].R += Number(toMilliAmp(phaseEmaAvg(rd, 'R')))
+      groups[key].S += Number(toMilliAmp(phaseEmaAvg(rd, 'S')))
+      groups[key].T += Number(toMilliAmp(phaseEmaAvg(rd, 'T')))
+      groups[key].count += 1
+    })
+    
+    chartData = Object.keys(groups).map(key => ({
+      time: groups[key].timeLabel,
+      date: key,
+      R: Number((groups[key].R / groups[key].count).toFixed(2)),
+      S: Number((groups[key].S / groups[key].count).toFixed(2)),
+      T: Number((groups[key].T / groups[key].count).toFixed(2)),
+    }))
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 mt-6">
@@ -78,7 +114,7 @@ export function DashboardChart({ devices }: Props) {
             {t('average_rst_chart')}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {t('average_rst_desc')}
+            Visualisasi Rata-Rata EMA Arus Bocor
           </p>
         </div>
         
@@ -97,16 +133,22 @@ export function DashboardChart({ devices }: Props) {
         )}
         <div className="flex bg-gray-100 rounded-lg p-1 ml-auto shrink-0">
           <button
+            onClick={() => setTimeFilter('day')}
+            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Daily
+          </button>
+          <button
             onClick={() => setTimeFilter('week')}
             className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            {t('week')}
+            Weekly
           </button>
           <button
             onClick={() => setTimeFilter('month')}
             className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${timeFilter === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            {t('month')}
+            Monthly
           </button>
         </div>
       </div>
@@ -136,7 +178,7 @@ export function DashboardChart({ devices }: Props) {
             <XAxis 
               dataKey="time" 
               tick={{ fontSize: 11, fill: '#64748b' }} 
-              minTickGap={24} 
+              minTickGap={10} 
               axisLine={false}
               tickLine={false}
               dy={10}
@@ -156,10 +198,7 @@ export function DashboardChart({ devices }: Props) {
             <Area type="monotone" name={t('average_r')} dataKey="R" stroke="#ef4444" fillOpacity={1} fill="url(#colorR)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_s')} dataKey="S" stroke="#eab308" fillOpacity={1} fill="url(#colorS)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             <Area type="monotone" name={t('average_t')} dataKey="T" stroke="#3b82f6" fillOpacity={1} fill="url(#colorT)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            {/* Garis Riwayat Prediksi H-1 */}
-            <Line type="monotone" name="Prediksi R (H-1)" dataKey="pred_R" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-            <Line type="monotone" name="Prediksi S (H-1)" dataKey="pred_S" stroke="#eab308" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-            <Line type="monotone" name="Prediksi T (H-1)" dataKey="pred_T" stroke="#3b82f6" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+            <Brush dataKey="time" height={30} stroke="#3b82f6" fill="#f8fafc" travellerWidth={10} />
           </ComposedChart>
         </ResponsiveContainer>
       )}

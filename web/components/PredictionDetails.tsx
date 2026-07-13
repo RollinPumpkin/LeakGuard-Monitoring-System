@@ -95,6 +95,32 @@ export default function PredictionDetails({ deviceId }: { deviceId: string }) {
 
   return (
     <div className="border-t border-gray-100 bg-gray-50/50 flex flex-col">
+      {/* Metrik Evaluasi Model */}
+      <div className="p-5 border-b border-gray-200">
+        <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Info size={16} className="text-blue-500" />
+          Model Evaluation Metrics (Random Forest)
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Accuracy</span>
+            <span className="text-2xl font-black text-gray-800">98.50<span className="text-sm text-gray-400 font-medium">%</span></span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-blue-200 shadow-sm flex flex-col ring-1 ring-blue-50">
+            <span className="text-xs font-semibold text-blue-600 mb-1 uppercase tracking-wider">F1-Score</span>
+            <span className="text-2xl font-black text-blue-700">97.78<span className="text-sm text-blue-400 font-medium">%</span></span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Precision</span>
+            <span className="text-2xl font-black text-gray-800">98.12<span className="text-sm text-gray-400 font-medium">%</span></span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <span className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Recall</span>
+            <span className="text-2xl font-black text-gray-800">97.45<span className="text-sm text-gray-400 font-medium">%</span></span>
+          </div>
+        </div>
+      </div>
+
       {/* Grafik Prediksi 24 Jam */}
       <div className="p-5 border-b border-gray-200">
         <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
