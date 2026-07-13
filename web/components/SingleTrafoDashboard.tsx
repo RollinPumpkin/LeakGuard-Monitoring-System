@@ -706,6 +706,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       )}
     </div>
   )
+  }
   
   const lastUpdateBadge = r?.timestamp 
     ? <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 whitespace-nowrap border border-gray-200">{format(parseISO(r.timestamp), 'dd MMM yyyy, HH:mm:ss', { locale: language === 'id' ? idLocale : enUS })}</span>
