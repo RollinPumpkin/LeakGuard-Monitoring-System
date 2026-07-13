@@ -221,9 +221,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       let key = ''
       let timeLabel = ''
       
-      if (timeFilter === 'day') {
-        key = format(startOfHour(date), 'yyyy-MM-dd HH:00')
-      } else if (timeFilter === 'week') {
+      if (timeFilter === 'week') {
         key = format(startOfDay(date), 'yyyy-MM-dd')
         timeLabel = format(date, 'EEEE', { locale: localeToUse })
       } else if (timeFilter === 'month') {
@@ -231,7 +229,6 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         key = `Week ${weekNum}`
         timeLabel = language === 'id' ? `Minggu ${weekNum}` : `Week ${weekNum}`
       }
-      
       if (!groups[key]) {
         groups[key] = { count: 0, sum: {}, firstRd: rd, timeLabel }
       }
@@ -338,6 +335,34 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   const handleZoomOut = () => {
     setZoomRange(null)
+  }
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const scrollLeft = target.scrollLeft
+    const scrollWidth = target.scrollWidth
+    const clientWidth = target.clientWidth
+    
+    if (finalChartData.length === 0) return
+    
+    const totalItems = finalChartData.length
+    const itemWidth = scrollWidth / totalItems
+    
+    const startIndex = Math.floor(scrollLeft / itemWidth)
+    const endIndex = Math.min(totalItems - 1, Math.floor((scrollLeft + clientWidth) / itemWidth))
+    
+    const startItem = finalChartData[startIndex]
+    const endItem = finalChartData[endIndex]
+    
+    if (startItem && endItem) {
+      const cleanStartDate = startItem.date.replace(' (Pred)', '')
+      const cleanEndDate = endItem.date.replace(' (Pred)', '')
+      if (cleanStartDate !== cleanEndDate) {
+        setDynamicDateRange(`${cleanStartDate} - ${cleanEndDate}`)
+      } else {
+        setDynamicDateRange(cleanStartDate)
+      }
+    }
   }
 
   // Label rentang zoom ala Steam Market

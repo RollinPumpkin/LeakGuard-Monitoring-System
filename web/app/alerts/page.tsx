@@ -86,14 +86,15 @@ export default function AlertsPage() {
 
   const renderSensorValue = (val: number | null | undefined) => {
     if (val == null) return <span className="text-gray-400">-</span>
-    const numVal = Number(val)
+    const rawVal = Number(val)
+    const valInMA = rawVal * 1000
     let statusClass = 'text-gray-600'
-    if (numVal >= thresholds.critical) {
+    if (valInMA >= thresholds.critical) {
       statusClass = 'font-bold text-red-700 bg-red-100 border border-red-300 rounded px-1.5 py-0.5'
-    } else if (numVal >= thresholds.warning) {
+    } else if (valInMA >= thresholds.warning) {
       statusClass = 'font-bold text-yellow-700 bg-yellow-100 border border-yellow-400 rounded px-1.5 py-0.5'
     }
-    return <span className={statusClass}>{numVal}</span>
+    return <span className={statusClass}>{rawVal.toFixed(3)}</span>
   }
 
   return (
