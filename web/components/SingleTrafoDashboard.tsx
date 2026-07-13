@@ -501,7 +501,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
         <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-xl text-xs min-w-[150px]">
           <p className="font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-2">{formatTooltipLabel(label)}</p>
           <div className="flex flex-col gap-1.5">
-            {payload.map((entry: any, index: number) => (
+            {payload
+              .filter((entry: any) => entry.name && !entry.name.includes('_pred_range'))
+              .map((entry: any, index: number) => (
               <div key={index} className="flex justify-between items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -524,7 +526,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return finalChartData.map((d: any) => d.time)
   }, [finalChartData, timeFilter])
 
-  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number, showPrediction?: boolean) => (
+  const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number, showPrediction?: boolean) => {
+    const dataToUse = showPrediction ? finalChartData : finalChartData.filter((d: any) => !d.isForecast)
+    return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -592,11 +596,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       ) : (
         <div className="relative">
           <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }} onScroll={handleScroll}>
-            <div style={{ minWidth: `${Math.max(1000, finalChartData.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
+            <div style={{ minWidth: `${Math.max(1000, dataToUse.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'line' ? (
                   <AreaChart 
-                    data={finalChartData} 
+                    data={dataToUse} 
                     syncId={syncId} 
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     onMouseDown={handleMouseDown}
@@ -617,7 +621,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       dataKey="time" 
                       tick={{ fontSize: 11, fill: '#64748b' }} 
                       minTickGap={15} 
-                      ticks={customTicks}
+                      ticks={showPrediction ? customTicks : customTicks.filter((tick, index) => !finalChartData[index]?.isForecast)}
                       axisLine={false}
                       tickLine={false}
                       dy={10}
@@ -631,7 +635,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                     ))}
                     {/* Tambahan garis putus-putus untuk prediksi */}
                     {showPrediction && dataKeys.map(dk => (
-                      <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
+                      <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" name={`${dk.key}_pred_range`} tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
                     ))}
                     {showPrediction && dataKeys.map(dk => (
                       <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
@@ -642,7 +646,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                   </AreaChart>
                 ) : (
                   <BarChart 
-                    data={finalChartData} 
+                    data={dataToUse} 
                     syncId={syncId}
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     onMouseDown={handleMouseDown}
@@ -679,17 +683,17 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           <div className={`absolute left-0 top-0 w-[35px] bg-white z-10 pointer-events-none ${syncId ? 'bottom-[42px]' : 'bottom-[76px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'line' ? (
-                <AreaChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                <AreaChart data={dataToUse} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Area key={dk.key} type="monotone" dataKey={dk.key} stroke="none" fill="none" />
                   ))}
-                  {dataKeys.map(dk => (
+                  {showPrediction && dataKeys.map(dk => (
                     <Area key={`${dk.key}_pred`} type="monotone" dataKey={`${dk.key}_pred`} stroke="none" fill="none" />
                   ))}
                 </AreaChart>
               ) : (
-                <BarChart data={finalChartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                <BarChart data={dataToUse} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} domain={[0, maxY ?? 'auto']} />
                   {dataKeys.map(dk => (
                     <Bar key={dk.key} dataKey={dk.key} fill="none" />
