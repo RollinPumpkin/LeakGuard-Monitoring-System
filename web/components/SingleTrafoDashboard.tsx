@@ -373,6 +373,20 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return ticks
   }, [finalChartData, timeFilter])
 
+  const dateRangeStr = React.useMemo(() => {
+    if (finalChartData.length === 0) return ''
+    const firstObj = finalChartData[0]
+    const lastObj = finalChartData[finalChartData.length - 1]
+    
+    try {
+      const startD = parseISO(firstObj.time.replace(' (Pred)', '').replace(' ', 'T'))
+      const endD = parseISO(lastObj.time.replace(' (Pred)', '').replace(' ', 'T'))
+      return `${format(startD, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })} - ${format(endD, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })}`
+    } catch {
+      return ''
+    }
+  }, [finalChartData, language])
+
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string) => (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -381,6 +395,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
           {title}
         </h3>
         <div className="flex flex-wrap items-center gap-3">
+          {!syncId && dateRangeStr && (
+            <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100">
+              {dateRangeStr}
+            </span>
+          )}
           {!syncId && (
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
