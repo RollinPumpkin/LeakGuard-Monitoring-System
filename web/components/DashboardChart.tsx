@@ -127,8 +127,9 @@ export function DashboardChart({ devices }: Props) {
     } catch(e) { return val }
   }
 
-  const formatTooltipLabel = (label: string) => {
+  const formatTooltipLabel = (label: any) => {
     try {
+      if (typeof label !== 'string') return label
       if (label.startsWith('Week') || label.includes('W')) return label
       const d = parseISO(label.replace(' ', 'T'))
       if (isNaN(d.getTime())) return label

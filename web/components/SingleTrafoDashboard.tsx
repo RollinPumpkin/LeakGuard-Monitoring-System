@@ -396,7 +396,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     return isPred ? `${formatted} (Pred)` : formatted
   }
 
-  const formatTooltipLabel = (label: string) => {
+  const formatTooltipLabel = (label: any) => {
+    if (typeof label !== 'string') return label
     const isPred = label.includes('(Pred)')
     const cleanLabel = label.replace(' (Pred)', '')
     try {

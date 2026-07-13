@@ -26,17 +26,39 @@ export default function AlertsPage() {
     const fetchAlerts = async () => {
       setLoading(true)
       
-      // Mengambil data dari tabel alerts dan join dengan sensor_readings
+      // Mengambil data dari tabel alerts tanpa foreign key join
       const { data, error } = await supabase
         .from('alerts')
-        .select('*, sensor_readings(*)')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(500)
 
       if (!active) return
       
-      if (data && !error) {
-        setAlerts(data as AlertWithReading[])
+      if (data && !error && data.length > 0) {
+        // Ambil ID dari sensor_readings yang terkait
+        const readingIds = data.map(a => a.reading_id).filter(Boolean)
+        
+        let readingsMap = new Map()
+        if (readingIds.length > 0) {
+          const { data: readings } = await supabase
+            .from('sensor_readings')
+            .select('*')
+            .in('id', readingIds)
+            
+          if (readings) {
+            readingsMap = new Map(readings.map(r => [r.id, r]))
+          }
+        }
+        
+        const enriched = data.map(a => ({
+          ...a,
+          sensor_readings: a.reading_id ? readingsMap.get(a.reading_id) || null : null
+        }))
+        
+        setAlerts(enriched as AlertWithReading[])
+      } else if (data && data.length === 0) {
+        setAlerts([])
       }
       setLoading(false)
     }

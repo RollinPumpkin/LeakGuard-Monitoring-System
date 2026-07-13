@@ -20,8 +20,11 @@ export function ThresholdProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('alarm_thresholds')
     if (saved) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setThresholdsState(JSON.parse(saved))
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
     }
   }, [])
 
