@@ -81,9 +81,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                  const newDate = new Date(t1 + j * 60 * 60 * 1000)
                  filledReadings.push({
                    ...current,
-                   r1: '0', r2: '0', r3: '0',
-                   s1: '0', s2: '0', s3: '0',
-                   t1: '0', t2: '0', t3: '0',
+                   r1: 0, r2: 0, r3: 0,
+                   s1: 0, s2: 0, s3: 0,
+                   t1: 0, t2: 0, t3: 0,
                    timestamp: newDate.toISOString(),
                    created_at: newDate.toISOString()
                  })
