@@ -39,9 +39,10 @@ export async function updateSession(request: NextRequest) {
   
   if (!user && !isAuthPage && !isSetupPage && !isApiRoute) {
     // Redirect unauthenticated users to login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    // [DISABLED BY REQUEST]
+    // const url = request.nextUrl.clone()
+    // url.pathname = '/login'
+    // return NextResponse.redirect(url)
   }
 
   if (user && isAuthPage) {
