@@ -885,7 +885,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                     {conf && (
                       <div className="text-right">
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Confidence</span>
-                        <span className={`text-lg font-black ${iconColor}`}>{conf}%</span>
+                        <span className={`text-lg font-black ${iconColor}`}>{typeof conf === 'number' ? conf.toFixed(2) : conf}%</span>
                       </div>
                     )}
                   </div>
