@@ -81,7 +81,11 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                  const newDate = new Date(t1 + j * 60 * 60 * 1000)
                  filledReadings.push({
                    ...current,
-                   timestamp: newDate.toISOString()
+                   r1: '0', r2: '0', r3: '0',
+                   s1: '0', s2: '0', s3: '0',
+                   t1: '0', t2: '0', t3: '0',
+                   timestamp: newDate.toISOString(),
+                   created_at: newDate.toISOString()
                  })
               }
             }
@@ -214,21 +218,16 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const localeToUse = language === 'id' ? idLocale : enUS
 
   let groupedReadings = readings
-  if (timeFilter !== 'day') {
+  if (timeFilter === 'week') {
     const groups: Record<string, any> = {}
     readings.forEach(rd => {
-      const date = parseISO(rd.timestamp)
-      let key = ''
-      let timeLabel = ''
+      const dateStr = rd.timestamp || rd.created_at
+      if (!dateStr) return
+      const date = parseISO(dateStr)
       
-      if (timeFilter === 'week') {
-        key = format(startOfDay(date), 'yyyy-MM-dd')
-        timeLabel = format(date, 'EEEE', { locale: localeToUse })
-      } else if (timeFilter === 'month') {
-        const weekNum = getWeekOfMonth(date)
-        key = `Week ${weekNum}`
-        timeLabel = language === 'id' ? `Minggu ${weekNum}` : `Week ${weekNum}`
-      }
+      const key = format(startOfDay(date), 'yyyy-MM-dd')
+      const timeLabel = format(date, 'EEEE', { locale: localeToUse })
+      
       if (!groups[key]) {
         groups[key] = { count: 0, sum: {}, firstRd: rd, timeLabel }
       }
@@ -253,9 +252,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   }
 
   const baseChartData = groupedReadings.map((rd: any) => {
+    const dateStr = rd.timestamp || rd.created_at || new Date().toISOString()
     const base = {
-      time: format(parseISO(rd.timestamp), 'yyyy-MM-dd HH:mm:ss'),
-      date: format(parseISO(rd.timestamp), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
+      time: format(parseISO(dateStr), 'yyyy-MM-dd HH:mm:ss'),
+      date: format(parseISO(dateStr), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
     }
     return {
       ...base,
@@ -281,16 +281,12 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   })
 
   let groupedForecastData = forecastData || []
-  if (forecastData && timeFilter !== 'day') {
+  if (forecastData && timeFilter === 'week') {
     const fg: Record<string, any> = {}
     forecastData.forEach((fd: any) => {
       const date = parseISO(fd.time.replace(' (Pred)', '').replace(' ', 'T'))
-      let key = ''
-      if (timeFilter === 'week') {
-        key = format(startOfDay(date), 'yyyy-MM-dd')
-      } else if (timeFilter === 'month') {
-        key = `Week ${getWeekOfMonth(date)}`
-      }
+      const key = format(startOfDay(date), 'yyyy-MM-dd')
+      
       if (!fg[key]) {
         fg[key] = { count: 0, sumR: 0, sumS: 0, sumT: 0, firstFd: fd }
       }
@@ -439,9 +435,9 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       if (timeFilter === 'day') {
         formatted = format(d, 'HH:mm')
       } else if (timeFilter === 'week') {
-        formatted = format(d, 'dd/MM HH:mm')
+        formatted = format(d, 'dd/MM')
       } else if (timeFilter === 'month') {
-        formatted = format(d, 'dd/MM/yy HH:mm')
+        formatted = format(d, 'dd/MM HH:mm')
       }
     } catch (e) {
       formatted = cleanVal.split(' ')[1] || cleanVal
