@@ -71,20 +71,19 @@ export function DashboardChart({ devices }: Props) {
     const groups: Record<string, { count: number, R: number, S: number, T: number }> = {}
     
     readings.forEach(rd => {
-      const date = parseISO(rd.timestamp)
+      // Prioritize created_at if timestamp is null (e.g. injected NULL rows for downtime)
+      const dateStr = rd.timestamp || rd.created_at
+      if (!dateStr) return
+      const date = parseISO(dateStr)
       let key = ''
-      let timeLabel = ''
       
       if (timeFilter === 'day') {
         key = format(startOfHour(date), 'yyyy-MM-dd HH:00')
-        timeLabel = format(date, 'HH:00')
       } else if (timeFilter === 'week') {
         key = format(startOfDay(date), 'yyyy-MM-dd')
-        timeLabel = format(date, 'EEEE', { locale: localeToUse })
       } else if (timeFilter === 'month') {
-        const weekNum = getWeekOfMonth(date)
-        key = `Week ${weekNum}`
-        timeLabel = `Minggu ${weekNum}`
+        // Do not group/average for month, use exact timestamp so raw data is plotted
+        key = date.toISOString()
       }
       
       if (!groups[key]) {
@@ -111,7 +110,6 @@ export function DashboardChart({ devices }: Props) {
       let dStr = val
       if (val.startsWith('Week')) return val
       if (val.includes('W')) {
-        // e.g. 2026-07-W1
         return val
       }
       const d = parseISO(dStr.replace(' ', 'T'))
@@ -121,8 +119,8 @@ export function DashboardChart({ devices }: Props) {
       } else if (timeFilter === 'week') {
         return format(d, 'EEEE, dd/MM', { locale: language === 'id' ? idLocale : enUS })
       } else {
-        const weekNum = Math.min(4, Math.ceil(d.getDate() / 7))
-        return language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
+        // Month view X-Axis: show date and time for raw data points
+        return format(d, 'dd MMM, HH:mm', { locale: language === 'id' ? idLocale : enUS })
       }
     } catch(e) { return val }
   }
@@ -138,7 +136,8 @@ export function DashboardChart({ devices }: Props) {
       } else if (timeFilter === 'week') {
         return format(d, 'EEEE, dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
       } else {
-        return format(d, 'MMM yyyy')
+        // Month view hover detail: precise hour and date
+        return format(d, 'dd MMM yyyy, HH:mm')
       }
     } catch(e) { return label }
   }
