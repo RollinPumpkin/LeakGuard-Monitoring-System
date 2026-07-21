@@ -118,7 +118,7 @@ export function DashboardChart({ devices }: Props) {
         return format(d, 'HH:mm')
       } else if (timeFilter === 'week') {
         return format(d, 'EEEE, dd/MM', { locale: language === 'id' ? idLocale : enUS })
-      } else if (timeFilter === 'month') {
+      } else {
         const weekNum = getWeekOfMonth(d)
         return language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
       }
