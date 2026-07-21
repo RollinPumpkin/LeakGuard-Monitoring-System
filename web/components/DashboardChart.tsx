@@ -118,9 +118,9 @@ export function DashboardChart({ devices }: Props) {
         return format(d, 'HH:mm')
       } else if (timeFilter === 'week') {
         return format(d, 'EEEE, dd/MM', { locale: language === 'id' ? idLocale : enUS })
-      } else {
-        // Month view X-Axis: show date and time for raw data points
-        return format(d, 'dd MMM, HH:mm', { locale: language === 'id' ? idLocale : enUS })
+      } else if (timeFilter === 'month') {
+        const weekNum = getWeekOfMonth(d)
+        return language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
       }
     } catch(e) { return val }
   }

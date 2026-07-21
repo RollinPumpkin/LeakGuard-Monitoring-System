@@ -290,39 +290,14 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
     }
   })
 
-  let groupedForecastData = forecastData || []
-  if (forecastData && timeFilter === 'week') {
-    const fg: Record<string, any> = {}
-    forecastData.forEach((fd: any) => {
-      const date = parseISO(fd.time.replace(' (Pred)', '').replace(' ', 'T'))
-      const key = format(startOfDay(date), 'yyyy-MM-dd')
-      
-      if (!fg[key]) {
-        fg[key] = { count: 0, sumR: 0, sumS: 0, sumT: 0, firstFd: fd }
-      }
-      fg[key].count += 1
-      fg[key].sumR += fd.R_pred
-      fg[key].sumS += fd.S_pred
-      fg[key].sumT += fd.T_pred
-    })
-    
-    groupedForecastData = Object.keys(fg).map(key => {
-      const g = fg[key]
-      const avgR = Number((g.sumR / g.count).toFixed(2))
-      const avgS = Number((g.sumS / g.count).toFixed(2))
-      const avgT = Number((g.sumT / g.count).toFixed(2))
-      
-      return {
-        ...g.firstFd,
-        R_pred: avgR,
-        S_pred: avgS,
-        T_pred: avgT,
-        R_pred_range: [Number((avgR * 0.92).toFixed(2)), Number((avgR * 1.08).toFixed(2))],
-        S_pred_range: [Number((avgS * 0.92).toFixed(2)), Number((avgS * 1.08).toFixed(2))],
-        T_pred_range: [Number((avgT * 0.92).toFixed(2)), Number((avgT * 1.08).toFixed(2))],
-      }
-    })
-  }
+  let groupedForecastData = (forecastData || []).map((fd: any) => {
+    const cleanTime = fd.time.replace(' (Pred)', '').replace(' ', 'T')
+    const parsedTime = parseISO(cleanTime)
+    return {
+      ...fd,
+      timestampMs: isNaN(parsedTime.getTime()) ? 0 : parsedTime.getTime(),
+    }
+  })
 
   // Tambahkan titik data prediksi di akhir chart
   const chartData = [...baseChartData, ...groupedForecastData]
@@ -447,7 +422,8 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       } else if (timeFilter === 'week') {
         formatted = format(d, 'dd/MM')
       } else if (timeFilter === 'month') {
-        formatted = format(d, 'dd/MM HH:mm')
+        const weekNum = getWeekOfMonth(d)
+        formatted = language === 'id' ? `Minggu ke-${weekNum}` : `Week ${weekNum}`
       }
     } catch (e) {
       formatted = cleanVal.split(' ')[1] || cleanVal
@@ -468,8 +444,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       } else if (timeFilter === 'week') {
         res = format(d, 'EEEE, dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS })
       } else {
-        const weekNum = getWeekOfMonth(d)
-        res = format(d, 'MMM yyyy', { locale: language === 'id' ? idLocale : enUS }) + (language === 'id' ? `, Minggu ke-${weekNum}` : `, Week ${weekNum}`)
+        res = format(d, 'dd MMM yyyy, HH:mm')
       }
       return isPred ? `${res} (Pred)` : res
     } catch(e) {
@@ -503,9 +478,10 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   const renderTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const realLabel = payload[0].payload.time || label
       return (
         <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-xl text-xs min-w-[150px]">
-          <p className="font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-2">{formatTooltipLabel(label)}</p>
+          <p className="font-semibold text-gray-700 mb-2 border-b border-gray-100 pb-2">{formatTooltipLabel(realLabel)}</p>
           <div className="flex flex-col gap-1.5">
             {payload
               .filter((entry: any) => entry.name && !entry.name.includes('_pred_range'))
@@ -647,7 +623,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                       <Area key={`${dk.key}_pred_range`} legendType="none" type="monotone" name={`${dk.key}_pred_range`} tooltipType="none" dataKey={`${dk.key}_pred_range`} stroke="none" fill={dk.color} fillOpacity={0.15} activeDot={false} />
                     ))}
                     {showPrediction && dataKeys.map(dk => (
-                      <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 1 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
+                      <Area key={`${dk.key}_pred`} legendType="none" type="monotone" name={`${dk.name} (Prediksi 24 Jam)`} dataKey={`${dk.key}_pred`} stroke={dk.color} fill="transparent" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={{ r: 6 }} />
                     ))}
                     {refAreaLeft && refAreaRight ? (
                       <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#60a5fa" fillOpacity={0.2} />
