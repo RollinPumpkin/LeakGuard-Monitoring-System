@@ -218,47 +218,57 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
   const localeToUse = language === 'id' ? idLocale : enUS
 
   let groupedReadings = readings
-  if (timeFilter === 'week') {
-    const groups: Record<string, any> = {}
-    readings.forEach(rd => {
-      const dateStr = rd.timestamp || rd.created_at
-      if (!dateStr) return
-      const date = parseISO(dateStr)
-      
-      const key = format(startOfDay(date), 'yyyy-MM-dd')
-      const timeLabel = format(date, 'EEEE', { locale: localeToUse })
-      
-      if (!groups[key]) {
-        groups[key] = { count: 0, sum: {}, firstRd: rd, timeLabel }
-      }
-      groups[key].count += 1
-      const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
-      keys.forEach(k => {
-        groups[key].sum[k] = (groups[key].sum[k] || 0) + Number(rd[k as keyof SensorReading] || 0)
-      })
+  const groups: Record<string, any> = {}
+  readings.forEach(rd => {
+    const dateStr = rd.timestamp || rd.created_at
+    if (!dateStr) return
+    const date = parseISO(dateStr)
+    
+    let key = ''
+    let timeLabel = ''
+    
+    if (timeFilter === 'week') {
+      key = format(startOfDay(date), 'yyyy-MM-dd')
+      timeLabel = format(date, 'EEEE', { locale: localeToUse })
+    } else if (timeFilter === 'month') {
+      key = format(startOfHour(date), 'yyyy-MM-dd HH:00:00')
+      timeLabel = format(startOfHour(date), 'HH:00')
+    } else {
+      // For 'day', NO GROUPING. Use exact timestamp as key.
+      key = dateStr
+      timeLabel = format(date, 'HH:mm')
+    }
+    
+    if (!groups[key]) {
+      groups[key] = { count: 0, sum: {}, firstRd: rd, timeLabel, exactDate: key }
+    }
+    groups[key].count += 1
+    const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
+    keys.forEach(k => {
+      groups[key].sum[k] = (groups[key].sum[k] || 0) + Number(rd[k as keyof SensorReading] || 0)
     })
+  })
 
-    groupedReadings = Object.keys(groups).map(key => {
-      const g = groups[key]
-      const avgRd: any = { ...g.firstRd, timestamp: g.firstRd.timestamp }
-      const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
-      keys.forEach(k => {
-        avgRd[k] = (g.sum[k] / g.count).toString()
-      })
-      avgRd._timeLabel = g.timeLabel
-      avgRd._dateKey = key
-      return avgRd as SensorReading & { _timeLabel?: string, _dateKey?: string }
+  groupedReadings = Object.keys(groups).map(key => {
+    const g = groups[key]
+    // Use the exact boundary timestamp so it doesn't show 12:16, 12:18 anymore
+    const avgRd: any = { ...g.firstRd, timestamp: g.exactDate, created_at: g.exactDate }
+    const keys = ['r1', 'r2', 'r3', 's1', 's2', 's3', 't1', 't2', 't3']
+    keys.forEach(k => {
+      avgRd[k] = (g.sum[k] / g.count).toString()
     })
-  }
+    avgRd._timeLabel = g.timeLabel
+    avgRd._dateKey = key
+    return avgRd as SensorReading & { _timeLabel?: string, _dateKey?: string }
+  })
 
   const baseChartData = groupedReadings.map((rd: any) => {
     const dateStr = rd.timestamp || rd.created_at || new Date().toISOString()
-    const base = {
-      time: format(parseISO(dateStr), 'yyyy-MM-dd HH:mm:ss'),
-      date: format(parseISO(dateStr), 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
-    }
+    const parsedDate = parseISO(dateStr)
     return {
-      ...base,
+      time: format(parsedDate, 'yyyy-MM-dd HH:mm:ss'),
+      timestampMs: parsedDate.getTime(),
+      date: format(parsedDate, 'dd MMM yyyy', { locale: language === 'id' ? idLocale : enUS }),
       R: Number(toMilliAmp((Number(rd.r1) + Number(rd.r2) + Number(rd.r3)) / 3).toFixed(2)),
       S: Number(toMilliAmp((Number(rd.s1) + Number(rd.s2) + Number(rd.s3)) / 3).toFixed(2)),
       T: Number(toMilliAmp((Number(rd.t1) + Number(rd.t2) + Number(rd.t3)) / 3).toFixed(2)),
@@ -519,7 +529,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
 
   // Get exactly one tick per interval to prevent duplicates
   const customTicks = React.useMemo(() => {
-    return finalChartData.map((d: any) => d.time)
+    return finalChartData.map((d: any) => timeFilter === 'day' ? d.timestampMs : d.time)
   }, [finalChartData, timeFilter])
 
   const renderChart = (title: string, dataKeys: {key: string, color: string, name: string}[], syncId?: string, maxY?: number, showPrediction?: boolean) => {
@@ -614,14 +624,17 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                     <XAxis 
-                      dataKey="time" 
+                      dataKey={timeFilter === 'day' ? 'timestampMs' : 'time'} 
+                      type={timeFilter === 'day' ? 'number' : 'category'}
+                      domain={timeFilter === 'day' ? ['dataMin', 'dataMax'] : undefined}
+                      scale={timeFilter === 'day' ? 'time' : 'auto'}
                       tick={{ fontSize: 11, fill: '#64748b' }} 
                       minTickGap={15} 
                       ticks={showPrediction ? customTicks : customTicks.filter((tick, index) => !finalChartData[index]?.isForecast)}
                       axisLine={false}
                       tickLine={false}
                       dy={10}
-                      tickFormatter={formatXAxis}
+                      tickFormatter={(val) => timeFilter === 'day' ? formatXAxis(new Date(val).toISOString()) : formatXAxis(val)}
                     />
                     <YAxis hide={true} domain={[0, maxY ?? 'auto']} />
                     <Tooltip content={renderTooltip} cursor={{ stroke: '#e2e8f0', strokeWidth: 2, strokeDasharray: '4 4' }} />
