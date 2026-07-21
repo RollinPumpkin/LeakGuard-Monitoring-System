@@ -592,7 +592,7 @@ export function SingleTrafoDashboard({ device, onDeleted }: Props) {
       ) : (
         <div className="relative">
           <div className="overflow-x-auto pb-4 custom-scrollbar" style={{ marginLeft: 35 }} onScroll={handleScroll}>
-            <div style={{ minWidth: '1000px', height: syncId ? '250px' : '350px' }}>
+            <div style={{ minWidth: timeFilter === 'month' ? '1000px' : `${Math.max(1000, dataToUse.length * 40)}px`, height: syncId ? '250px' : '350px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === 'line' ? (
                   <AreaChart 
