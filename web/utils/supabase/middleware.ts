@@ -45,8 +45,8 @@ export async function updateSession(request: NextRequest) {
     // return NextResponse.redirect(url)
   }
 
-  if (user && isAuthPage) {
-    // Redirect authenticated users away from login
+  if (isAuthPage) {
+    // Redirect ALL users away from login since it's disabled by request
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

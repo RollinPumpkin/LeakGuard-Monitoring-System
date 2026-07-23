@@ -1,0 +1,34 @@
+import urllib.request
+import urllib.parse
+import json
+import ssl
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+def search(q):
+    url = f"https://api.crossref.org/works?query={urllib.parse.quote(q)}&select=title,author,issued,DOI&rows=5"
+    req = urllib.request.Request(url, headers={'User-Agent': 'mailto:test@example.com'})
+    resp = urllib.request.urlopen(req, context=ctx)
+    data = json.loads(resp.read())
+    for item in data.get('message', {}).get('items', []):
+        title = item.get('title', [''])[0]
+        doi = item.get('DOI', '')
+        authors = []
+        for a in item.get('author', []):
+            authors.append(f"{a.get('given', '')} {a.get('family', '')}".strip())
+        issued = item.get('issued', {}).get('date-parts', [[0]])[0][0]
+        if issued >= 2020:
+            print(f"Title: {title}")
+            print(f"Authors: {', '.join(authors)}")
+            print(f"Year: {issued}")
+            print(f"DOI: https://doi.org/{doi}")
+            print("-" * 40)
+            break
+
+print("=== PAPER 1 ===")
+search("time series forecasting battery health neural network")
+
+print("\n=== PAPER 2 ===")
+search("support vector machine leakage current insulator condition")
